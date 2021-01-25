@@ -86,11 +86,11 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
     event LogCoinsBurned(address burnedFrom, uint amount);
     
     
-    constructor() public {
+    constructor() {
         name = "CreditToken";
         symbol = "CT";
-        decimals = 18;
-        _totalSupply = 1000000000000000000;
+        decimals = 3;
+        _totalSupply = 0;
         
         isOwned();
 
@@ -150,7 +150,7 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
         
         
         
-        function burn(address owner, uint amount) external safeBurn {
+        function burn(address owner, uint amount) external onlyWhiteListed {
             balances[owner] -= amount;
             _totalSupply -= amount;
             LogCoinsBurned(owner, amount);
