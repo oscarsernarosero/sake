@@ -50,11 +50,23 @@ contract Owned {
 contract Whitelist is Owned {
     address[] public whitelistedAddress;
     
-    mapping (address => bool) userAddr;
+    
+    mapping (address => bool) lendingPoolAddr;
 
-    function whitelistAddress (address user) external onlyOwner {
-        userAddr[user] = true;
-        whitelistedAddress.push(user);
+    function whitelistAddress (address pool) external onlyOwner {
+        
+        lendingPoolAddr[pool] = true;
+        whitelistedAddress.push(pool);
+    }
+    function blacklistAddress (address pool) external onlyOwner {
+        
+        lendingPoolAddr[pool] = false;
+        whitelistedAddress.push(pool);
+    }
+    modifier onlyWhiteListed {
+            require(lendingPoolAddr[msg.sender]==true,"Not white listed!!");
+            _;
+            
     }
 }
 
@@ -109,20 +121,13 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             return true;
         }
         
-        function transfer(address to, uint tokens) public override safeTransfer returns (bool success) {
+        function transfer(address to, uint tokens) public override onlyWhiteListed returns (bool success) {
             balances[msg.sender] = safeSub(balances[msg.sender], tokens);
             balances[to] = safeAdd(balances[to], tokens);
             emit Transfer(msg.sender, to, tokens);
             return true;
         }
         
-        modifier safeTransfer {
-            for(uint i; i< whitelistedAddress.length;i++){
-                if(msg.sender == whitelistedAddress[i]){
-                    _;
-                }
-            }
-        }
         
         function transferFrom(address from, address to, uint tokens) public override returns (bool success) {
             balances[from] = safeSub(balances[from], tokens);
@@ -137,19 +142,13 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             return  whiteList;
         }
         
-        function mint(address owner, uint amount) external safeMint {
+        function mint(address owner, uint amount) external onlyWhiteListed {
             balances[owner] += amount;
             _totalSupply += amount;
             LogCoinsMinted(owner, amount);
         }
         
-        modifier safeMint {
-            for(uint i; i< whitelistedAddress.length;i++){
-                if(msg.sender == whitelistedAddress[i]){
-                    _;
-                }
-            }
-        }
+        
         
         function burn(address owner, uint amount) external safeBurn {
             balances[owner] -= amount;
@@ -157,11 +156,6 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             LogCoinsBurned(owner, amount);
         }
         
-        modifier safeBurn {
-            for(uint i; i< whitelistedAddress.length;i++){
-                if(msg.sender == whitelistedAddress[i]){
-                    _;
-                }
-            }
-        }
+        
+        
 }
