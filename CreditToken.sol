@@ -109,11 +109,19 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             return true;
         }
         
-        function transfer(address to, uint tokens) public override onlyOwner returns (bool success) {
+        function transfer(address to, uint tokens) public override safeTransfer returns (bool success) {
             balances[msg.sender] = safeSub(balances[msg.sender], tokens);
             balances[to] = safeAdd(balances[to], tokens);
             emit Transfer(msg.sender, to, tokens);
             return true;
+        }
+        
+        modifier safeTransfer {
+            for(uint i; i< whitelistedAddress.length;i++){
+                if(msg.sender == whitelistedAddress[i]){
+                    _;
+                }
+            }
         }
         
         function transferFrom(address from, address to, uint tokens) public override returns (bool success) {
@@ -154,7 +162,6 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
                 if(msg.sender == whitelistedAddress[i]){
                     _;
                 }
-            
             }
         }
 }
