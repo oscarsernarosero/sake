@@ -1,5 +1,13 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.7.4;
 
+
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
+
+/*
+****IMPORTED IERC20 FROM OPENZEPPELING, NO NEED TO REPEAT CODE HERE****
+****(NEED TO UNDERSTAND INTENTION, AS OF RIGHT NOW, NOT REALLY WORKING)****
 interface ERC20Interface {
 
     function totalSupply() external view returns (uint256);
@@ -15,6 +23,7 @@ interface ERC20Interface {
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
 }
 
+****IMPORTED SAFEMATH FROM OPENZEPPELING, NO NEED TO REPEAT CODE HERE****
 contract SafeMath {
     function safeAdd(uint a, uint b) internal pure returns (uint c) {
         c = a + b;
@@ -33,129 +42,215 @@ contract SafeMath {
         c = a / b;
     }
 }
+*/
 
-contract Owned {
+
+contract Owner {
     
     address owner;
-
-    function isOwned() internal {
-        owner = msg.sender;
-    }
-
+    
     modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
+
+    /**
+     * @notice establishes owner, who then has
+     * access to certain functions
+     */
+    function  establishOwner() internal {
+        owner = msg.sender;
+    }
 }
-contract Whitelist is Owned {
+
+
+/**
+ * @title Whitelist contract that allows owner's to
+ * either blacklist or whitelist any given address
+ * @author Sake team
+ */
+contract Whitelist is Owner {
+    
     address[] public whitelistedAddress;
     
+    mapping(address => bool) lendingPoolAddress;
     
-    mapping (address => bool) lendingPoolAddr;
-
-    function whitelistAddress (address pool) external onlyOwner {
-        
-        lendingPoolAddr[pool] = true;
-        whitelistedAddress.push(pool);
-    }
-    function blacklistAddress (address pool) external onlyOwner {
-        
-        lendingPoolAddr[pool] = false;
-        whitelistedAddress.push(pool);
-    }
+    /**
+     * @notice allows addresses to be confirmed to belong
+     * to list of white listed addresses
+     */
     modifier onlyWhiteListed {
-            require(lendingPoolAddr[msg.sender]==true,"Not white listed!!");
-            _;
-            
+        require(lendingPoolAddress[msg.sender] == true,"This address is not white listed.");
+        _;
     }
+
+    /**
+     * @notice owner can add provided address to list of
+     * white listed addresses
+     */
+    function whitelistAddress (address _pool) external onlyOwner {
+        lendingPoolAddress[_pool] = true;
+        whitelistedAddress.push(_pool);
+    }
+    
+    /**
+     * @notice owner can add provided address to list of
+     * black listed addresses
+     */
+    function blacklistAddress (address _pool) external onlyOwner {
+        lendingPoolAddress[_pool] = false;
+        whitelistedAddress.push(_pool);
+    }
+    
 }
 
-contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
-        
+
+/**
+ * @title CreditToken a token that parallels the existing credit score
+ * system in place in the existing system
+ * @author Sake team
+ * @notice Create a token representing a user's credit score,
+ * which can be used to...
+ */
+contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
+    
+    // Details of CT token
     string public name;
     string public symbol;
     uint public decimals;
-    address [] whiteList;
     
-    uint256 public _totalSupply;
+    address[] whiteList;
+    
+    uint256 public totalSupply;
     
     mapping(address => uint) balances;
-    mapping(address => mapping(address => uint)) allowed;
+    mapping(address => mapping(address => uint)) allowed; // NEED THIS VARIABLE EXPLAINED - ROBERTO
     
     event LogCoinsMinted(address deliveredTo, uint amount);
     event LogCoinsBurned(address burnedFrom, uint amount);
     
-    
+    /**
+     * @notice Creates CreditToken (CT) upon deployment with a 
+     * total supply of zero.
+     */
     constructor() {
+        
+        establishOwner();
+        
         name = "CreditToken";
         symbol = "CT";
         decimals = 3;
-        _totalSupply = 0;
-        
-        isOwned();
+        totalSupply = 0;
 
-        balances[msg.sender] = _totalSupply;
-        emit Transfer(address(0), msg.sender, _totalSupply);
+        // Sets the balance of the address that deployed
+        // the contract at zero.
+        balances[msg.sender] = totalSupply;
+        // emit IERC20.Transfer(address(0), msg.sender, _totalSupply); REVISIT LATER
     }
-
-        function totalSupply() public override view returns (uint) {
-            return _totalSupply - balances[address(0)];
-        }
-        
-        function checkScore() public view returns (uint score) {
-            score = balances[msg.sender];
-            return score;
-        }
-        
-        function balanceOf(address tokenOwner) public view override returns (uint balance) {
-            return balances[tokenOwner];
-        }
-        
-        function allowance(address tokenOwner, address spender) public view override returns (uint remaining) {
-            return allowed[tokenOwner][spender];
-        }
-        
-        function approve(address spender, uint tokens) public override returns (bool success) {
-            allowed[msg.sender][spender] = tokens;
-            emit Approval(msg.sender, spender, tokens);
-            return true;
-        }
-        
-        function transfer(address to, uint tokens) public override onlyWhiteListed returns (bool success) {
-            balances[msg.sender] = safeSub(balances[msg.sender], tokens);
-            balances[to] = safeAdd(balances[to], tokens);
-            emit Transfer(msg.sender, to, tokens);
-            return true;
-        }
-        
-        
-        function transferFrom(address from, address to, uint tokens) public override returns (bool success) {
-            balances[from] = safeSub(balances[from], tokens);
-            allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
-            balances[to] = safeAdd(balances[to], tokens);
-            emit Transfer(from, to, tokens);
-            return true;
-        }
-        
-        function viewWhitelist() public returns (address [] memory) {
-            whiteList = whitelistedAddress;
-            return  whiteList;
-        }
-        
-        function mint(address owner, uint amount) external onlyWhiteListed {
-            balances[owner] += amount;
-            _totalSupply += amount;
-            LogCoinsMinted(owner, amount);
-        }
-        
-        
-        
-        function burn(address owner, uint amount) external onlyWhiteListed {
-            balances[owner] -= amount;
-            _totalSupply -= amount;
-            LogCoinsBurned(owner, amount);
-        }
-        
-        
-        
+    
+    /**
+     * @notice mints new CT to owner by a white listed address
+     * @dev increases _owner's balance and _totalSupply by _amount
+     */
+    function mint(address _owner, uint _amount) external onlyWhiteListed { // ONLYWHITELISTED MODIFIER ALLOWS ANY WHITE LISTED ADDRESS TO MINT?
+        balances[_owner] = SafeMath.add(balances[_owner], _amount);
+        totalSupply = SafeMath.add(totalSupply, _amount);
+        emit LogCoinsMinted(owner, _amount);
+    }
+    
+    /**
+     * @notice decreases owner's amount of CT by provided amount
+     * @dev subtracts _owner's balance of CT by _amount before
+     * subtracting _amount from the totalSupply
+     */
+    function burn(address _owner, uint _amount) external onlyWhiteListed { // ONLYWHITELISTED MODIFIER ALLOWS ANY WHITE LISTED ADDRESS TO BURN?
+        balances[_owner] = SafeMath.sub(balances[_owner], _amount);
+        totalSupply = SafeMath.sub(totalSupply, _amount);
+        emit LogCoinsBurned(_owner, _amount);
+    }
+    
+    /**
+     * @notice Approves an address to have a certain amount of tokens CONFIRM INTENTION
+     * @dev msg.sender can approve an address of tokens
+     * @param _spender address who msg.sender approves
+     * @param _tokens amount of tokens _spender is approved for
+     */
+    function approve(address _spender, uint _tokens) public returns (bool success) {
+        allowed[msg.sender][_spender] = _tokens;
+        //emit IERC20.Approval(msg.sender, _spender, _tokens);
+        return true;
+    }
+    
+    /**
+     * @notice allows user to transfer tokens fromt their address to provided recipient
+     * @dev subtracts tokens from sender before adding tokens to balance of recipient
+     */
+    function transfer(address _to, uint _tokens) public onlyWhiteListed returns (bool success) {
+        balances[msg.sender] = SafeMath.sub(balances[msg.sender], _tokens);
+        balances[_to] = SafeMath.add(balances[_to], _tokens);
+        // emit IERC20.Transfer(msg.sender, to, tokens);
+        return true;
+    }
+    
+    /**
+     * @notice allows user to transfer tokens on behalf(?) of owner to provided recipient
+     * @dev subtracts tokens from sender address before adding tokens to balance of recipient
+     */
+    function transferFrom(address _from, address _to, uint _tokens) public returns (bool success) {
+        balances[_from] = SafeMath.sub(balances[_from], _tokens);
+        allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender], _tokens); // NEED THIS LINE EXPLAINED - ROBERTO
+        balances[_to] = SafeMath.add(balances[_to], _tokens);
+        // emit IERC20.Transfer(from, to, tokens);
+        return true;
+    }
+    
+    /**
+     * @notice displays all addresses that have been whitelisted
+     * @dev returns all stored data in whitelistedAddress array
+     */
+    function viewWhitelist() public returns (address[] memory) {
+        whiteList = whitelistedAddress;
+        return  whiteList;
+    }
+    
+    /**
+     * @notice returns balance of the total supply
+     * of CT.
+     * @dev getter function that returns value of
+     * _totalSupply variable.
+     */
+    function getTotalSupply() public view returns (uint) {
+        return totalSupply - balances[address(0)]; // WHY SUBTRACT FROM _TOTALSUPPLY
+    }
+    
+    /**
+     * @notice returns credit score of address calling
+     * the function.
+     * @dev returns the balance of CT from msg.sender'sender
+     * address
+     */
+    function checkScore() public view returns (uint score) {
+        score = balances[msg.sender];
+        return score;
+    }
+    
+    /**
+     * @notice Get balance of CT from the provided address
+     * @dev returns balance of CT from balances mapping from
+     * param address
+     */
+    function balanceOf(address _tokenOwner) public view returns (uint balance) {
+        return balances[_tokenOwner];
+    }
+    
+    /**
+     * @notice provides address of spender of a particular token CONFIRM INTENTION
+     * @dev returns uint from mapping of _spender, which was returned from mapping of _tokenOwner
+     * @param _tokenOwner owner of token CONFIRM INTENTION
+     * @param _spender address of who is allowed to spend on behalf of _tokenOwner
+     */
+    function allowance(address _tokenOwner, address _spender) public view returns (uint remaining) {
+        return allowed[_tokenOwner][_spender];
+    }
+    
 }
