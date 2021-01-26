@@ -1,4 +1,4 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
 contract CreditToken {
     
@@ -12,24 +12,63 @@ contract CreditToken {
 
 contract Loan {
     
-    CreditToken public creditToken;
+    CreditToken immutable public creditToken;
+    uint immutable public collateralRequired;
+    uint immutable public creditTokensRequired;
+    uint8 state = 0;
+    address payable immutable  public borrower;
+    uint immutable public loanAmount;
     
-    constructor (CreditToken tokenAddr){
+    constructor ( CreditToken tokenAddr, uint _collateralRequired, address payable _borrower,
+    uint _creditTokensRequired, uint _loanAmount){
+        
+        collateralRequired = _collateralRequired;
         creditToken = CreditToken(tokenAddr);
+        borrower = _borrower;
+        loanAmount = _loanAmount;
+        creditTokensRequired = _creditTokensRequired;
+        
     }
     
-    function getStake(address payable borrower, uint amount) public returns (bool success){
+    //After this contract has been created, the borrower must put up the collateral by sending ETH
+    //to the address of the Loan Contract which will be handled by this method and initiate the 
+    //disbursment of the loan.
+    receive() external payable{
+        require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
         
-        require(amount > 0, "You need to sell at least some tokens");
+        //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
+        getStake();
+        
+        //and disburse the loan
+        
+    }
+    
+    fallback() external payable {
+        require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
+        
+        //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
+        getStake();
+        
+        //and disburse the loan
+    }
+        
+    
+    function getStake() public payable returns (bool success){
+        
         uint256 allowance = creditToken.allowance(borrower, address(this));
-        require(allowance >= amount, "Check the token allowance");
-        creditToken.transferFrom(borrower, address(this), amount);
-        borrower.transfer(amount);
+        require(allowance >= creditTokensRequired, "Check the token allowance");
+        creditToken.transferFrom(borrower, address(this), creditTokensRequired);
+        //borrower.transfer(amount);
         
         return true;
     }
     
-    function getBalance() public view  returns (uint balance) {
+    function getCreditTokenBalance() public view  returns (uint balance) {
         return creditToken.balanceOf(address(this));
     }
+    
+    function getEtherBalance() public view returns (uint){
+        return address(this).balance;
+    }
+    
 }
