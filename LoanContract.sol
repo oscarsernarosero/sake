@@ -1,5 +1,9 @@
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.7.6; //OpenZeppelin's COMPILER CAN'T BE 0.8.0 OR HIGHER
 
+import "./CreditToken.sol";
+
+/*
 contract CreditToken {
     
     //transfer function
@@ -9,14 +13,15 @@ contract CreditToken {
     
     function allowance(address, address ) public view  returns (uint remaining) {}
 }
+*/
 
 contract Loan {
     
     CreditToken immutable public creditToken;
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
-    bytes32 state = 0;
-    address payable immutable  public borrower;
+    bytes32 stateOfLoan = 0; // DON'T DECLARE AN EMPTY STRING? - ROBERTO
+    address payable immutable public borrower;
     uint immutable public loanAmount;
 
     //states
@@ -28,84 +33,101 @@ contract Loan {
     bytes32 constant PAID_IN_FULL = "paidInFull";
     bytes32 constant DEFAULTED = "defaulted";
     
+    modifier onlyOnState(bytes32 _state) {
+        require(stateOfLoan == _state,"This method cannot be called during current state.");
+        _; 
+    }
+    
     //https://ethereum.stackexchange.com/questions/59132/deploy-contract-with-ether
-    constructor ( 
-        CreditToken tokenAddr, //the address of the credittoken's contract. (only development phase. Should be hardcoded in production time)
-        uint _collateralRequired, //the Ether amount of the collateral in weis
-        address payable _borrower, //address of the borroweaddress
-        uint _creditTokensRequired, // the Credit Tokens neccessary to put up as stake
-        uint _loanAmount //The amount of Ether that is going to be lended to the borrower (weis)
-        )
-        payable{ // The constructor is payable because it will receive the Ether to be lended at creation time
-        
+    /**
+     * @notice Creates a loan contract for the address
+     * calling it. (Constructor is payable to receive Ether to then be lent out at creation time)
+     * @param _tokenAddress address of the creditToken's contract. (only development phase. Should be hardcoded in production time)
+     * @param _collateralRequired collateral in Wei THIS WILL BE FIGURED OUT BY A ALGORITHM, RIGHT? - ROBERTO
+     * @param _borrower borrower's address
+     * @param _creditTokensRequired CreditTokens neccessary for stake
+     * @param _loanAmount Ether, in Wei, to be lent to the borrower
+     */
+    constructor(
+        CreditToken _tokenAddress,
+        uint _collateralRequired,
+        address payable _borrower,
+        uint _creditTokensRequired,
+        uint _loanAmount
+    )
+        payable
+    { 
         require(msg.value == _loanAmount); 
         
         collateralRequired = _collateralRequired;
-        creditToken = CreditToken(tokenAddr);
+        creditToken = CreditToken(_tokenAddress);
         borrower = _borrower;
         loanAmount = _loanAmount;
         creditTokensRequired = _creditTokensRequired;
         
-        state = WAITING_ON_COLLATERAL;
-        
-    }
-
-    modifier onlyOnState(bytes32 _state) {
-            require(state==_state,"This method cannot be called during current state.");
-            _; 
+        stateOfLoan = WAITING_ON_COLLATERAL;
     }
     
-    //After this contract has been created, the borrower must put up the collateral by sending ETH
-    //to the address of the Loan Contract which will be handled by this method and initiate the 
-    //disbursment of the loan.
-    receive() external payable{
-        require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
+    /**
+     * @notice Function to receive the collateral, in ETH, take stake of CreditTokens 
+     * and disburse loan
+     * @dev Requires collateral be above minimum stored in variabale, update state of stake,
+     * takes stake from borrowing address, updates state of stake again, disburses loan
+     */
+    receive() external payable {
+        require(msg.value >= collateralRequired * 1 wei, "Collateral provided is lower than collateral required.");
         
-        //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
-        state = TAKING_STAKE;
+        stateOfLoan = TAKING_STAKE;
         getStake();
         
-        //and disburse the loan
-        state = DISBURSING_LOAN;
+        stateOfLoan = DISBURSING_LOAN;
         disburseLoan();
         
-        state = ACTIVE;
+        stateOfLoan = ACTIVE;
         
     }
     
+    /*
+    TEST WITHOUT FALLBACK FUNCTION
     fallback() external payable {
-        require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
-        
-        //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
-        state = TAKING_STAKE;
-        getStake();
-        
-        //and disburse the loan
-        state = DISBURSING_LOAN;
-        disburseLoan();
-        
-        state = ACTIVE;
+        receive();
     }
+    */
         
-    
-    function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success){
-        
+    /*SHOULD IT BE A PUBLIC FUNCTION? - ROBERTO*/
+    /**
+     * @notice Loan Contract takes the stake of
+     * CreditTokens from borrower address
+     * @dev confirms the contract is allowed has gotten enough
+     * CreditTokens from user's address
+     */
+    function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success) {
         uint256 allowance = creditToken.allowance(borrower, address(this));
-        require(allowance >= creditTokensRequired, "Check the token allowance");
+        require(allowance >= creditTokensRequired, "Token balance too low");
         creditToken.transferFrom(borrower, address(this), creditTokensRequired);
         return true;
     }
     
+    /**
+     * @notice Provides CreditToken balance of the contract
+     */
     function getCreditTokenBalance() public view  returns (uint balance) {
         return creditToken.balanceOf(address(this));
     }
     
+    /**
+     * @notice Provides Ether balance of the contract
+     */
     function getEtherBalance() public view returns (uint){
         return address(this).balance;
     }
     
+    /**
+     * @notice Disburses the loan that was requested
+     */
     function disburseLoan() private onlyOnState(DISBURSING_LOAN) returns(bool success){
         borrower.transfer(loanAmount);
+        return true;
     }
     
 }
