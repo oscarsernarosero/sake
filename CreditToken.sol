@@ -6,7 +6,7 @@ interface ERC20Interface {
     function balanceOf(address tokenOwner) external view returns (uint balance);
     function allowance(address tokenOwner, address spender) external view returns (uint remaining);
     function transfer(address to, uint tokens) external returns (bool success);
-    function approve(address spender, uint tokens) external returns (bool success);
+    function approve(address owner, address spender, uint tokens) external returns (bool success);
     function transferFrom (address from, address to, uint tokens) external returns (bool success);
 
 
@@ -111,16 +111,19 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             return balances[tokenOwner];
         }
         
+        //This shows how much allowance the spender has to spend the tokenOwner tokens.
         function allowance(address tokenOwner, address spender) public view override returns (uint remaining) {
             return allowed[tokenOwner][spender];
         }
         
-        function approve(address spender, uint tokens) public override returns (bool success) {
-            allowed[msg.sender][spender] = tokens;
-            emit Approval(msg.sender, spender, tokens);
+        //should be onlyWhiteListed because this allows an address to spend from anotherone.
+        function approve(address owner, address spender, uint tokens) public override onlyWhiteListed returns (bool success) {
+            allowed[owner][spender] = tokens;
+            emit Approval(owner, spender, tokens);
             return true;
         }
         
+        //Use this method if you are the owner of the tokens.
         function transfer(address to, uint tokens) public override onlyWhiteListed returns (bool success) {
             balances[msg.sender] = safeSub(balances[msg.sender], tokens);
             balances[to] = safeAdd(balances[to], tokens);
@@ -129,9 +132,21 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
         }
         
         
-        function transferFrom(address from, address to, uint tokens) public override returns (bool success) {
+        //Use this method if you want to transfer tokens of somebody else. You should have allowance first
+        //through the approve method.
+        function  transferFrom(address from, address to, uint tokens) public payable override onlyWhiteListed returns (bool success) {
+            
+            //debug event
+            //emit Balance(balances[from], from);
+            //console.log(balances[from]);
+            
             balances[from] = safeSub(balances[from], tokens);
+            require(tokens <= balances[from], "Not enough balance for this tx");
             allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
+            
+            //debug event
+            emit Allowed(allowed[from][msg.sender], msg.sender);
+            
             balances[to] = safeAdd(balances[to], tokens);
             emit Transfer(from, to, tokens);
             return true;

@@ -1,4 +1,4 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
 contract CreditToken {
     
@@ -18,9 +18,9 @@ contract Loan {
         creditToken = CreditToken(tokenAddr);
     }
     
-    function getStake(address payable borrower, uint amount) public returns (bool success){
+    function getStake(address payable borrower, uint amount) public payable returns (bool success){
         
-        require(amount > 0, "You need to sell at least some tokens");
+        require(amount > 0, "You need to stake at least some tokens");
         uint256 allowance = creditToken.allowance(borrower, address(this));
         require(allowance >= amount, "Check the token allowance");
         creditToken.transferFrom(borrower, address(this), amount);
@@ -33,3 +33,4 @@ contract Loan {
         return creditToken.balanceOf(address(this));
     }
 }
+
