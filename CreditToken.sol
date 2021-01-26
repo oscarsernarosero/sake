@@ -1,6 +1,4 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.7.4;
-
+pragma solidity ^0.8.0;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/IERC20.sol";
@@ -14,13 +12,14 @@ interface ERC20Interface {
     function balanceOf(address tokenOwner) external view returns (uint balance);
     function allowance(address tokenOwner, address spender) external view returns (uint remaining);
     function transfer(address to, uint tokens) external returns (bool success);
-    function approve(address spender, uint tokens) external returns (bool success);
+    function approve(address owner, address spender, uint tokens) external returns (bool success);
     function transferFrom (address from, address to, uint tokens) external returns (bool success);
 
 
 
     event Transfer(address indexed from, address indexed to, uint tokens);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+    
 }
 
 ****IMPORTED SAFEMATH FROM OPENZEPPELING, NO NEED TO REPEAT CODE HERE****
@@ -117,7 +116,7 @@ contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
     // Details of CT token
     string public name;
     string public symbol;
-    uint public decimals;
+    uint8 public decimals;
     
     address[] whiteList;
     
@@ -175,9 +174,9 @@ contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
      * @param _spender address who msg.sender approves
      * @param _tokens amount of tokens _spender is approved for
      */
-    function approve(address _spender, uint _tokens) public returns (bool success) {
-        allowed[msg.sender][_spender] = _tokens;
-        //emit IERC20.Approval(msg.sender, _spender, _tokens);
+    function approve(address _owner, address _spender, uint _tokens) public override onlyWhiteListed returns (bool success) {
+        allowed[_owner][_spender] = _tokens;
+        emit Approval(_owner, _spender, _tokens);
         return true;
     }
     
@@ -197,6 +196,7 @@ contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
      * @dev subtracts tokens from sender address before adding tokens to balance of recipient
      */
     function transferFrom(address _from, address _to, uint _tokens) public returns (bool success) {
+        require(_tokens <= balances[_from], "Balance too low for this transaction");
         balances[_from] = SafeMath.sub(balances[_from], _tokens);
         allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender], _tokens); // NEED THIS LINE EXPLAINED - ROBERTO
         balances[_to] = SafeMath.add(balances[_to], _tokens);
@@ -239,7 +239,7 @@ contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
      * @dev returns balance of CT from balances mapping from
      * param address
      */
-    function balanceOf(address _tokenOwner) public view returns (uint balance) {
+    function balanceOf(address _tokenOwner) public view override returns (uint balance) {
         return balances[_tokenOwner];
     }
     
@@ -249,7 +249,7 @@ contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
      * @param _tokenOwner owner of token CONFIRM INTENTION
      * @param _spender address of who is allowed to spend on behalf of _tokenOwner
      */
-    function allowance(address _tokenOwner, address _spender) public view returns (uint remaining) {
+    function allowance(address _tokenOwner, address _spender) public view override returns (uint remaining) {
         return allowed[_tokenOwner][_spender];
     }
     
