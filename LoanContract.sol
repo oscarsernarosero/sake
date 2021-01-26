@@ -15,9 +15,18 @@ contract Loan {
     CreditToken immutable public creditToken;
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
-    uint8 state = 0;
+    bytes32 state = 0;
     address payable immutable  public borrower;
     uint immutable public loanAmount;
+
+    //states
+    bytes32 constant WAITING_ON_COLLATERAL = "waitingOnCollateral";
+    bytes32 constant TAKING_STAKE = "takingStake";
+    bytes32 constant DISBURSING_LOAN = "disbursingLoan";
+    bytes32 constant ACTIVE = "active";
+    bytes32 constant LATE = "late";
+    bytes32 constant PAID_IN_FULL = "paidInFull";
+    bytes32 constant DEFAULTED = "defaulted";
     
     //https://ethereum.stackexchange.com/questions/59132/deploy-contract-with-ether
     constructor ( 
@@ -37,7 +46,13 @@ contract Loan {
         loanAmount = _loanAmount;
         creditTokensRequired = _creditTokensRequired;
         
+        state = WAITING_ON_COLLATERAL;
         
+    }
+
+    modifier onlyOnState(bytes32 _state) {
+            require(state==_state,"This method cannot be called during current state.");
+            _; 
     }
     
     //After this contract has been created, the borrower must put up the collateral by sending ETH
@@ -47,10 +62,14 @@ contract Loan {
         require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
         
         //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
+        state = TAKING_STAKE;
         getStake();
         
         //and disburse the loan
+        state = DISBURSING_LOAN;
         disburseLoan();
+        
+        state = ACTIVE;
         
     }
     
@@ -58,14 +77,18 @@ contract Loan {
         require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
         
         //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
+        state = TAKING_STAKE;
         getStake();
         
         //and disburse the loan
+        state = DISBURSING_LOAN;
         disburseLoan();
+        
+        state = ACTIVE;
     }
         
     
-    function getStake() public payable returns (bool success){
+    function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success){
         
         uint256 allowance = creditToken.allowance(borrower, address(this));
         require(allowance >= creditTokensRequired, "Check the token allowance");
@@ -81,7 +104,7 @@ contract Loan {
         return address(this).balance;
     }
     
-    function disburseLoan() private returns(bool success){
+    function disburseLoan() private onlyOnState(DISBURSING_LOAN) returns(bool success){
         borrower.transfer(loanAmount);
     }
     
