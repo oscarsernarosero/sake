@@ -134,7 +134,7 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
         
         //Use this method if you want to transfer tokens of somebody else. You should have allowance first
         //through the approve method.
-        function  transferFrom(address from, address to, uint tokens) public payable override onlyWhiteListed returns (bool success) {
+        function  transferFrom(address from, address to, uint tokens) public override onlyWhiteListed returns (bool success) {
             
             //debug event
             //emit Balance(balances[from], from);
@@ -145,7 +145,7 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
             
             //debug event
-            emit Allowed(allowed[from][msg.sender], msg.sender);
+            //emit Allowed(allowed[from][msg.sender], msg.sender);
             
             balances[to] = safeAdd(balances[to], tokens);
             emit Transfer(from, to, tokens);
