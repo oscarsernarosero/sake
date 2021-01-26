@@ -1,4 +1,4 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
 interface ERC20Interface {
 
@@ -6,13 +6,14 @@ interface ERC20Interface {
     function balanceOf(address tokenOwner) external view returns (uint balance);
     function allowance(address tokenOwner, address spender) external view returns (uint remaining);
     function transfer(address to, uint tokens) external returns (bool success);
-    function approve(address spender, uint tokens) external returns (bool success);
+    function approve(address owner, address spender, uint tokens) external returns (bool success);
     function transferFrom (address from, address to, uint tokens) external returns (bool success);
 
 
 
     event Transfer(address indexed from, address indexed to, uint tokens);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+    
 }
 
 contract SafeMath {
@@ -74,7 +75,7 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
         
     string public name;
     string public symbol;
-    uint public decimals;
+    uint8 public decimals;
     address [] whiteList;
     
     uint256 public _totalSupply;
@@ -111,16 +112,19 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             return balances[tokenOwner];
         }
         
+        //This shows how much allowance the spender has to spend the tokenOwner tokens.
         function allowance(address tokenOwner, address spender) public view override returns (uint remaining) {
             return allowed[tokenOwner][spender];
         }
         
-        function approve(address spender, uint tokens) public override returns (bool success) {
-            allowed[msg.sender][spender] = tokens;
-            emit Approval(msg.sender, spender, tokens);
+        //should be onlyWhiteListed because this allows an address to spend from anotherone.
+        function approve(address owner, address spender, uint tokens) public override onlyWhiteListed returns (bool success) {
+            allowed[owner][spender] = tokens;
+            emit Approval(owner, spender, tokens);
             return true;
         }
         
+        //Use this method if you are the owner of the tokens.
         function transfer(address to, uint tokens) public override onlyWhiteListed returns (bool success) {
             balances[msg.sender] = safeSub(balances[msg.sender], tokens);
             balances[to] = safeAdd(balances[to], tokens);
@@ -128,8 +132,11 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             return true;
         }
         
-        
-        function transferFrom(address from, address to, uint tokens) public override returns (bool success) {
+        //Use this method if you want to transfer tokens of somebody else. You should have allowance first
+        //through the approve method.
+        function  transferFrom(address from, address to, uint tokens) public  override onlyWhiteListed returns (bool success) {
+            
+            require(tokens <= balances[from], "Not enough balance for this tx");
             balances[from] = safeSub(balances[from], tokens);
             allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
             balances[to] = safeAdd(balances[to], tokens);
@@ -147,7 +154,6 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             _totalSupply += amount;
             LogCoinsMinted(owner, amount);
         }
-        
         
         
         function burn(address owner, uint amount) external onlyWhiteListed {

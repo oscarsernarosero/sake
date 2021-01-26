@@ -19,14 +19,24 @@ contract Loan {
     address payable immutable  public borrower;
     uint immutable public loanAmount;
     
-    constructor ( CreditToken tokenAddr, uint _collateralRequired, address payable _borrower,
-    uint _creditTokensRequired, uint _loanAmount){
+    //https://ethereum.stackexchange.com/questions/59132/deploy-contract-with-ether
+    constructor ( 
+        CreditToken tokenAddr, //the address of the credittoken's contract. (only development phase. Should be hardcoded in production time)
+        uint _collateralRequired, //the Ether amount of the collateral in weis
+        address payable _borrower, //address of the borroweaddress
+        uint _creditTokensRequired, // the Credit Tokens neccessary to put up as stake
+        uint _loanAmount //The amount of Ether that is going to be lended to the borrower (weis)
+        )
+        payable{ // The constructor is payable because it will receive the Ether to be lended at creation time
+        
+        require(msg.value == _loanAmount); 
         
         collateralRequired = _collateralRequired;
         creditToken = CreditToken(tokenAddr);
         borrower = _borrower;
         loanAmount = _loanAmount;
         creditTokensRequired = _creditTokensRequired;
+        
         
     }
     
@@ -40,6 +50,7 @@ contract Loan {
         getStake();
         
         //and disburse the loan
+        disburseLoan();
         
     }
     
@@ -50,6 +61,7 @@ contract Loan {
         getStake();
         
         //and disburse the loan
+        disburseLoan();
     }
         
     
@@ -58,8 +70,6 @@ contract Loan {
         uint256 allowance = creditToken.allowance(borrower, address(this));
         require(allowance >= creditTokensRequired, "Check the token allowance");
         creditToken.transferFrom(borrower, address(this), creditTokensRequired);
-        //borrower.transfer(amount);
-        
         return true;
     }
     
@@ -69,6 +79,10 @@ contract Loan {
     
     function getEtherBalance() public view returns (uint){
         return address(this).balance;
+    }
+    
+    function disburseLoan() private returns(bool success){
+        borrower.transfer(loanAmount);
     }
     
 }
