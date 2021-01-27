@@ -15,6 +15,14 @@ contract CreditToken {
 }
 */
 
+
+contract LoanFactory {
+    
+    function createLoan() {
+        
+    }
+}
+
 contract Loan {
     
     CreditToken immutable public creditToken;
@@ -45,7 +53,7 @@ contract Loan {
      * @param _tokenAddress address of the creditToken's contract. (only development phase. Should be hardcoded in production time)
      * @param _collateralRequired collateral in Wei THIS WILL BE FIGURED OUT BY A ALGORITHM, RIGHT? - ROBERTO
      * @param _borrower borrower's address
-     * @param _creditTokensRequired CreditTokens neccessary for stake
+     * @param _creditTokensRequired CreditTokens neccessary for stake THIS WILL BE FIGURED OUT BY A ALGORITHM, RIGHT? - ROBERTO
      * @param _loanAmount Ether, in Wei, to be lent to the borrower
      */
     constructor(
@@ -55,9 +63,10 @@ contract Loan {
         uint _creditTokensRequired,
         uint _loanAmount
     )
-        payable
+        // payable
     { 
-        require(msg.value == _loanAmount); 
+        // I DON'T THINK IT'S NECESSARY TO HAVE A MSG.VALUE, SINCE IT'LL BE RECEIVED WHEN RECEIVE() IS CALLED
+        //  require(msg.value == _collateralRequired); CHANGED FROM _LOANAMOUNT TO _COLLATERALREQUIRED
         
         collateralRequired = _collateralRequired;
         creditToken = CreditToken(_tokenAddress);
@@ -74,7 +83,7 @@ contract Loan {
      * @dev Requires collateral be above minimum stored in variabale, update state of stake,
      * takes stake from borrowing address, updates state of stake again, disburses loan
      */
-    receive() external payable {
+    function beginLoanProcess() external payable {
         require(msg.value >= collateralRequired * 1 wei, "Collateral provided is lower than collateral required.");
         
         stateOfLoan = TAKING_STAKE;
@@ -88,6 +97,11 @@ contract Loan {
     }
     
     /*
+    RECEIVE FUNCTION IS A STANDARD FUNCTION, WILL TEST WITHOUT IT
+    receive() external payable {
+        
+    }
+    
     TEST WITHOUT FALLBACK FUNCTION
     fallback() external payable {
         receive();
@@ -102,8 +116,8 @@ contract Loan {
      * CreditTokens from user's address
      */
     function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success) {
-        uint256 allowance = creditToken.allowance(borrower, address(this));
-        require(allowance >= creditTokensRequired, "Token balance too low");
+        require(creditToken.balanceOf(borrower) >= creditTokensRequired, "CreditToken balance too low");
+        creditToken.approve(borrower, address(this), creditTokensRequired);
         creditToken.transferFrom(borrower, address(this), creditTokensRequired);
         return true;
     }
@@ -125,7 +139,7 @@ contract Loan {
     /**
      * @notice Disburses the loan that was requested
      */
-    function disburseLoan() private onlyOnState(DISBURSING_LOAN) returns(bool success){
+    function disburseLoan() private onlyOnState(DISBURSING_LOAN) returns (bool success){
         borrower.transfer(loanAmount);
         return true;
     }

@@ -22,26 +22,6 @@ interface ERC20Interface {
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
     
 }
-
-****IMPORTED SAFEMATH FROM OPENZEPPELING, NO NEED TO REPEAT CODE HERE****
-contract SafeMath {
-    function safeAdd(uint a, uint b) internal pure returns (uint c) {
-        c = a + b;
-        require(c >= a);
-    }
-    function safeSub(uint a, uint b) internal pure returns (uint c) {
-        require(b <= a); c = a - b; 
-        
-    } 
-    function safeMul(uint a, uint b) internal pure returns (uint c) { 
-        c = a * b; 
-        require(a == 0 || c / a == b); 
-    } 
-    function safeDiv(uint a, uint b) internal pure returns (uint c) { 
-        require(b > 0);
-        c = a / b;
-    }
-}
 */
 
 
@@ -175,10 +155,9 @@ contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
      * @param _spender address who msg.sender approves
      * @param _tokens amount of tokens _spender is approved for
      */
-    function approve(address _owner, address _spender, uint _tokens) public /*override*/ onlyWhiteListed returns (bool success) {
-        allowed[_owner][_spender] = _tokens;
+    function approve(address _owner, address _spender, uint _tokens) public /*override*/ {
         // emit Approval(_owner, _spender, _tokens);
-        return true;
+        allowed[_owner][_spender] = _tokens;
     }
     
     /**
@@ -199,7 +178,9 @@ contract CreditToken is /*ERC20Interface, SafeMath,*/ Whitelist {
     function transferFrom(address _from, address _to, uint _tokens) public returns (bool success) {
         require(_tokens <= balances[_from], "Balance too low for this transaction");
         balances[_from] = SafeMath.sub(balances[_from], _tokens);
-        allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender], _tokens); // NEED THIS LINE EXPLAINED - ROBERTO
+        // OTHER CONTRACT IS CALLING THIS FUNCTION WITH ITS OWN ADDRESS AS A PARAMETER
+        // IS IT NECESSARY TO CALL THIS MSG.SENDER LINE?
+        // allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender], _tokens); NEED THIS LINE EXPLAINED - ROBERTO
         balances[_to] = SafeMath.add(balances[_to], _tokens);
         // emit IERC20.Transfer(from, to, tokens);
         return true;
