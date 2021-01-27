@@ -10,16 +10,31 @@ contract CreditToken {
     function allowance(address, address ) public view  returns (uint remaining) {}
 }
 
-contract Loan {
+contract Owned {
     
-    CreditToken immutable public creditToken;
+    address owner;
+
+    function isOwned() internal {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+}
+
+contract Loan is Owned{
+    
+    CreditToken constant public creditToken = CreditToken(0xfFee743BD4794361Cb2EC0c86d22fb5Ac4a1568b);
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
-    bytes32 state = 0;
+    bytes32 public state;
     address payable immutable  public borrower;
     uint immutable public loanAmount;
-
+    
     //states
+    //to read them use https://web3-type-converter.onbrn.com/
     bytes32 constant WAITING_ON_COLLATERAL = "waitingOnCollateral";
     bytes32 constant TAKING_STAKE = "takingStake";
     bytes32 constant DISBURSING_LOAN = "disbursingLoan";
@@ -30,7 +45,7 @@ contract Loan {
     
     //https://ethereum.stackexchange.com/questions/59132/deploy-contract-with-ether
     constructor ( 
-        CreditToken tokenAddr, //the address of the credittoken's contract. (only development phase. Should be hardcoded in production time)
+        //CreditToken tokenAddr, //the address of the credittoken's contract. (only development phase. Should be hardcoded in production time)
         uint _collateralRequired, //the Ether amount of the collateral in weis
         address payable _borrower, //address of the borroweaddress
         uint _creditTokensRequired, // the Credit Tokens neccessary to put up as stake
@@ -41,27 +56,28 @@ contract Loan {
         require(msg.value == _loanAmount); 
         
         collateralRequired = _collateralRequired;
-        creditToken = CreditToken(tokenAddr);
+        //creditToken = CreditToken(tokenAddr);
         borrower = _borrower;
         loanAmount = _loanAmount;
         creditTokensRequired = _creditTokensRequired;
         
         state = WAITING_ON_COLLATERAL;
-        
     }
-
+    
     modifier onlyOnState(bytes32 _state) {
             require(state==_state,"This method cannot be called during current state.");
-            _; 
+            _;
     }
     
     //After this contract has been created, the borrower must put up the collateral by sending ETH
     //to the address of the Loan Contract which will be handled by this method and initiate the 
-    //disbursment of the loan.
+    //disbursement of the loan.
     receive() external payable{
         require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
         
-        //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
+        //TO-DO: take care of excesive Ether sent, or simply give it back at the end
+        
+        //..Now that the borrower has put the ETH as collateral, we take the CreditTokens for the loan.
         state = TAKING_STAKE;
         getStake();
         
@@ -74,6 +90,7 @@ contract Loan {
     }
     
     fallback() external payable {
+        
         require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
         
         //..Now that the borrower has put the ETH as collateral, we take the tokens for the loan.
@@ -87,8 +104,8 @@ contract Loan {
         state = ACTIVE;
     }
         
-    
-    function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success){
+    //the onlyOnState and onlyOwner modifiers work around the fact that payable functions cannot be internal nor private
+    function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success){//set to private
         
         uint256 allowance = creditToken.allowance(borrower, address(this));
         require(allowance >= creditTokensRequired, "Check the token allowance");
@@ -104,8 +121,13 @@ contract Loan {
         return address(this).balance;
     }
     
-    function disburseLoan() private onlyOnState(DISBURSING_LOAN) returns(bool success){
+    function disburseLoan() onlyOnState(DISBURSING_LOAN) private returns(bool success){
         borrower.transfer(loanAmount);
+        return true;
     }
     
+    function returnCollateral() public returns(bool success){ //set to private
+        borrower.transfer(address(this).balance);
+        return true;
+    }
 }
