@@ -4,27 +4,13 @@ contract CreditToken {
     
     //transfer function
     function transferFrom(address, address, uint ) public returns (bool success) {}
-    
     function balanceOf(address) public view  returns (uint balance) {}
-    
     function allowance(address, address ) public view  returns (uint remaining) {}
+    function transfer(address to, uint tokens) external returns (bool success){}
 }
 
-contract Owned {
-    
-    address owner;
 
-    function isOwned() internal {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner);
-        _;
-    }
-}
-
-contract Loan is Owned{
+contract Loan{
     
     CreditToken constant public creditToken = CreditToken(0xfFee743BD4794361Cb2EC0c86d22fb5Ac4a1568b);
     uint immutable public collateralRequired;
@@ -104,8 +90,8 @@ contract Loan is Owned{
         state = ACTIVE;
     }
         
-    //the onlyOnState and onlyOwner modifiers work around the fact that payable functions cannot be internal nor private
-    function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success){//set to private
+    //the onlyOnState modifier works around the fact that payable functions cannot be internal nor private
+    function getStake() public payable onlyOnState(TAKING_STAKE) returns (bool success){
         
         uint256 allowance = creditToken.allowance(borrower, address(this));
         require(allowance >= creditTokensRequired, "Check the token allowance");
@@ -126,8 +112,13 @@ contract Loan is Owned{
         return true;
     }
     
-    function returnCollateral() public returns(bool success){ //set to private
+    function returnCollateral() public returns(bool success){ //SET TO PRIVATE!!!
         borrower.transfer(address(this).balance);
+        return true;
+    }
+    
+    function returnAllCreditTokens() public returns(bool success){ //SET TO PRIVATE!!!
+        creditToken.transfer(borrower, creditToken.balanceOf(address(this) ) );
         return true;
     }
 }
