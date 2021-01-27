@@ -1,4 +1,4 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
 interface ERC20Interface {
 
@@ -13,6 +13,7 @@ interface ERC20Interface {
 
     event Transfer(address indexed from, address indexed to, uint tokens);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+    
 }
 
 contract SafeMath {
@@ -74,7 +75,7 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
         
     string public name;
     string public symbol;
-    uint public decimals;
+    uint8 public decimals;
     address [] whiteList;
     
     uint256 public _totalSupply;
@@ -131,15 +132,11 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             return true;
         }
         
-        
         //Use this method if you want to transfer tokens of somebody else. You should have allowance first
         //through the approve method.
-        function  transferFrom(address from, address to, uint tokens) public override onlyWhiteListed returns (bool success) {
+        function  transferFrom(address from, address to, uint tokens) public  override onlyWhiteListed returns (bool success) {
             
-            //debug event
-            //emit Balance(balances[from], from);
-            //console.log(balances[from]);
-            
+            require(tokens <= balances[from], "Not enough balance for this tx");
             balances[from] = safeSub(balances[from], tokens);
             require(tokens <= balances[from], "Not enough balance for this tx");
             allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
@@ -162,7 +159,6 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             _totalSupply += amount;
             LogCoinsMinted(owner, amount);
         }
-        
         
         
         function burn(address owner, uint amount) external onlyWhiteListed {
