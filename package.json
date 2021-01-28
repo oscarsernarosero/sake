@@ -18,8 +18,11 @@
   },
   "homepage": "https://github.com/oscarsernarosero/sake#readme",
   "dependencies": {
+    "fs-extra": "^9.1.0",
     "next": "^4.1.4",
     "react": "^16.14.0",
-    "react-dom": "^16.14.0"
+    "react-dom": "^16.14.0",
+    "solc": "^0.8.1",
+    "web3": "^1.3.3"
   }
 }
