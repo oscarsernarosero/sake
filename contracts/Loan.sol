@@ -17,13 +17,8 @@ contract Loan{
     CreditToken constant public creditToken = CreditToken(0x0Af46820AEB180757A473B443B02fc511f4feffe);
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
-<<<<<<< HEAD:contracts/LoanContract.sol
-    bytes32 public state;
-    address payable immutable public borrower;
-=======
     
     address payable immutable  public borrower;
->>>>>>> oscar:Loan.sol
     uint immutable public loanAmount;
     
     enum States {
@@ -59,21 +54,9 @@ contract Loan{
         state = States.WaitingOnCollateral;
     }
     
-<<<<<<< HEAD:contracts/LoanContract.sol
-   
-    function getStake(address payable borrower, uint amount) public payable returns (bool success){
-        
-        
-        uint256 allowance = creditToken.allowance(borrower, address(this));
-        require(allowance >= amount, "Check the token allowance");
-        creditToken.transferFrom(borrower, address(this), amount);
-        return true;
-=======
-    
     modifier onlyOnState(States _state) {
         require(state == _state,"Function cannot be called at this time.");
         _;
->>>>>>> oscar:Loan.sol
     }
 
     function nextState() internal {
