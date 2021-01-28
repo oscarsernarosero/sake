@@ -15,14 +15,12 @@ contract CreditToken {
 }
 */
 
-
-contract LoanFactory {
-    
-    function createLoan() {
-        
-    }
-}
-
+/**
+ * @title Loan contract representing a loan and its terms
+ * @author Sake team
+ * @notice Create contract that creates a loan for the person
+ * wanting to borrow money.
+ */
 contract Loan {
     
     CreditToken immutable public creditToken;
@@ -144,4 +142,47 @@ contract Loan {
         return true;
     }
     
+}
+
+
+/**
+ * @title LoanFactory creates loans upon being called
+ * @author Sake team
+ * @notice Create contract that creates a loan for the person
+ * wanting to borrow money.
+ */
+contract LoanFactory {
+    
+    address payable borrower;
+    
+    mapping(address => Loan) loansOfBorrower;
+    
+    /**
+     * @notice Creates a loan contract for the address
+     * calling it.
+     * @param _tokenAddress address of the creditToken's contract. (only development phase. Should be hardcoded in production time)
+     * @param _collateralRequired collateral in Wei THIS WILL BE FIGURED OUT BY A ALGORITHM, RIGHT? - ROBERTO
+     * @param _borrower borrower's address
+     * @param _creditTokensRequired CreditTokens neccessary for stake THIS WILL BE FIGURED OUT BY A ALGORITHM, RIGHT? - ROBERTO
+     * @param _loanAmount Ether, in Wei, to be lent to the borrower
+     */
+    function createLoan(
+        CreditToken _tokenAddress,
+        uint _collateralRequired,
+        address payable _borrower,
+        uint _creditTokensRequired,
+        uint _loanAmount
+    )
+        public
+    {
+        borrower = _borrower;
+        Loan newLoan = new Loan(
+            _tokenAddress,
+            _collateralRequired,
+            borrower,
+            _creditTokensRequired,
+            _loanAmount
+        );
+        loansOfBorrower[borrower] = newLoan;
+    }
 }
