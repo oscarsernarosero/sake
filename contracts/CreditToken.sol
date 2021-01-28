@@ -48,27 +48,32 @@ contract Owned {
         _;
     }
 }
-contract Whitelist is Owned {
+contract Whitelist {
+    
     address[] public whitelistedAddress;
     
-    
     mapping (address => bool) lendingPoolAddr;
+    
+    modifier onlyWhiteListed {
+            require(lendingPoolAddr[msg.sender]==true,"Not white listed!!");
+            _;   
+    }
+    
+    function whiteListOwner(address owner) internal {
+        lendingPoolAddr[owner] = true;
+        whitelistedAddress.push(owner);
+    }
 
-    function whitelistAddress (address pool) external onlyOwner {
-        
+    function whitelistAddress (address pool) external onlyWhiteListed {
         lendingPoolAddr[pool] = true;
         whitelistedAddress.push(pool);
     }
-    function blacklistAddress (address pool) external onlyOwner {
-        
+    
+    function blacklistAddress (address pool) external onlyWhiteListed {
         lendingPoolAddr[pool] = false;
         whitelistedAddress.push(pool);
     }
-    modifier onlyWhiteListed {
-            require(lendingPoolAddr[msg.sender]==true,"Not white listed!!");
-            _;
-            
-    }
+    
 }
 
 contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
@@ -94,6 +99,7 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
         _totalSupply = 0;
         
         isOwned();
+        whiteListOwner(msg.sender);
 
         balances[msg.sender] = _totalSupply;
         emit Transfer(address(0), msg.sender, _totalSupply);
@@ -138,20 +144,15 @@ contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
             
             require(tokens <= balances[from], "Not enough balance for this tx");
             balances[from] = safeSub(balances[from], tokens);
-            require(tokens <= balances[from], "Not enough balance for this tx");
             allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
-            
-            //debug event
-            //emit Allowed(allowed[from][msg.sender], msg.sender);
-            
             balances[to] = safeAdd(balances[to], tokens);
             emit Transfer(from, to, tokens);
             return true;
         }
         
-        function viewWhitelist() public returns (address [] memory) {
-            whiteList = whitelistedAddress;
-            return  whiteList;
+        function viewWhitelist() public view returns (address [] memory) {
+            return whitelistedAddress;
+           // return  whiteList;
         }
         
         function mint(address owner, uint amount) external onlyWhiteListed {
