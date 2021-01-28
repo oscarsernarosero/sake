@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 
+import "Loan.sol";
 
 //safemath?
 
@@ -20,9 +21,11 @@ contract Owned {
 contract LendingPool is Owned {
     
     address[] public lenders;
+    CreditToken constant public creditToken = CreditToken(0xfFee743BD4794361Cb2EC0c86d22fb5Ac4a1568b);
     
     uint public immutable maxSize;
     mapping( address => uint ) public balances;
+    mapping(address => Loan) public loansOfBorrower;
     
     //mapping (address => uint) pendingWithdrawals;
     
@@ -67,5 +70,21 @@ contract LendingPool is Owned {
             }
         return true;
     }
+    
+    function createLoan( uint _collateralRequired,address payable _borrower,
+                        uint _creditTokensRequired, uint _loanAmount ) public returns (address) {
+                            
+        //For documentation: https://github.com/ethereum/solidity/blob/develop/Changelog.md#062-2020-01-27
+         Loan newLoan = new Loan{value: _loanAmount}(
+                                 _collateralRequired,
+                                 _borrower,
+                                 _creditTokensRequired,
+                                 _loanAmount
+                             );
+                             
+         creditToken.approve (_borrower, address(newLoan), _creditTokensRequired);
+         
+         loansOfBorrower[_borrower] = newLoan;
+     }
     
 }
