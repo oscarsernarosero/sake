@@ -14,7 +14,7 @@ contract CreditToken {
 
 contract Loan{
     
-    CreditToken constant public creditToken = CreditToken(0xfFee743BD4794361Cb2EC0c86d22fb5Ac4a1568b);
+    CreditToken constant public creditToken = CreditToken(0x0Af46820AEB180757A473B443B02fc511f4feffe);
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
     

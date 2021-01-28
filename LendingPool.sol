@@ -20,8 +20,8 @@ contract Owned {
 
 contract LendingPool is Owned {
     
-    address[] public lenders;
-    CreditToken constant public creditToken = CreditToken(0xfFee743BD4794361Cb2EC0c86d22fb5Ac4a1568b);
+    address[] private lenders;
+    CreditToken constant public creditToken = CreditToken(0x0Af46820AEB180757A473B443B02fc511f4feffe);
     
     uint public immutable maxSize;
     mapping( address => uint ) public balances;
@@ -62,18 +62,25 @@ contract LendingPool is Owned {
     }
     
     function testOnlyLiquidatePool() external onlyOwner returns (bool success){
-        payable(owner).transfer(address(this).balance);
+        //payable(owner).transfer(address(this).balance);
         
         uint64 i=0;
         for (i; i<lenders.length; i++) {
+            payable(lenders[i]).transfer(balances[lenders[i]]);
             balances[lenders[i]] = 0; 
             }
         return true;
     }
     
+    function viewLenders() public view returns (address [] memory) {
+        return lenders;
+    }
+    
     function createLoan( uint _collateralRequired,address payable _borrower,
                         uint _creditTokensRequired, uint _loanAmount ) public returns (address) {
                             
+                            
+        uint priorBalance = address(this).balance;            
         //For documentation: https://github.com/ethereum/solidity/blob/develop/Changelog.md#062-2020-01-27
          Loan newLoan = new Loan{value: _loanAmount}(
                                  _collateralRequired,
@@ -82,9 +89,17 @@ contract LendingPool is Owned {
                                  _loanAmount
                              );
                              
+         creditToken.whitelistAddress ( address(newLoan) );
          creditToken.approve (_borrower, address(newLoan), _creditTokensRequired);
          
          loansOfBorrower[_borrower] = newLoan;
+         
+         //update balances
+         uint  reductionBalanceRate = (priorBalance - _loanAmount)*10000/priorBalance; //(100 times the percentage)
+         uint64 i=0;
+         for (i; i<lenders.length; i++) {
+            balances[lenders[i]] = (balances[lenders[i]] * reductionBalanceRate)/10000; 
+            }
      }
     
 }
