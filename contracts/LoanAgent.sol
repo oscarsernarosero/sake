@@ -51,7 +51,7 @@ contract LoanAgent{
     }
     
     function calculateInterests( uint loanTerm, uint loanAmount, uint _APR ) private pure returns (uint totalInterests){
-        return _APR*;
+        return _APR;
     }
     
     function getAPR() private pure returns (uint APR){

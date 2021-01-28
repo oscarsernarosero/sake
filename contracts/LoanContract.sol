@@ -16,7 +16,7 @@ contract Loan{
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
     bytes32 public state;
-    address payable immutable  public borrower;
+    address payable immutable public borrower;
     uint immutable public loanAmount;
     
     //states
@@ -55,26 +55,7 @@ contract Loan{
             _;
     }
     
-    //After this contract has been created, the borrower must put up the collateral by sending ETH
-    //to the address of the Loan Contract which will be handled by this method and initiate the 
-    //disbursement of the loan.
-    receive() external payable{
-        require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
-        
-        //TO-DO: take care of excesive Ether sent, or simply give it back at the end
-        
-        //..Now that the borrower has put the ETH as collateral, we take the CreditTokens for the loan.
-        state = TAKING_STAKE;
-        getStake();
-        
-        //and disburse the loan
-        state = DISBURSING_LOAN;
-        disburseLoan();
-        
-        state = ACTIVE;
-        
-    }
-    
+   
     function getStake(address payable borrower, uint amount) public payable returns (bool success){
         
         
