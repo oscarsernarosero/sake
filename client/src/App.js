@@ -83,31 +83,48 @@ class App extends Component {
     return (
       <div className="App">
         <div class="body">
-          <div class="left">
-            <h1>Welcome to your DeFi Credit Score</h1>
-            <p><div id="userAddress"></div></p>
-            <h2>Get Your Score Now</h2>
+          <div class="row">
+            <div class="column">
+              <h1>Welcome to your DeFi Credit Score & Lending Platform</h1>
+              <p align="left"><strong>User: </strong><div id="userAddress" align="left"></div></p>
+            </div>
+            <div class="column2">
+              <p>Current Interest Rate:</p>
+              <p>Credit Token Balance: <strong> {this.state.creditTokenBalance} </strong></p>
+              <p>Ethereum Balance:</p>
+              </div>
           </div>
-          <div class="right">
-            <p>
-              Click the button below to check your Credit Score associated with your current attached Web3 wallet
-            </p>
-            <p>
-              <button id="selfclick" onClick={this.checkScore}>Check Your Score </button>
-            </p>
-            <p>
-              Or Enter an Ethereum wallet address and click below the Credit Score associated with that wallet
-            </p>
-            <input
-              type="text"
-              id="addressBar"
-            />
-            <p>
-              <button id="selfclick" onClick={this.checkScore2}>Check Their Score </button>
-            </p>
-            <p>
-              <text align="center">Your Credit Token Balance: <strong>{this.state.creditTokenBalance}</strong> </text>
-            </p>
+          <br></br>
+          <div class="row">
+              <h2 align="left">Current Active Loans</h2>
+              <div class="column20">
+                Click the button to check your Credit Score associated with your current attached Web3 wallet
+              </div>
+              <div class="column20">
+              <p>
+                <button id="selfclick" onClick={this.checkScore}>Check Your Score </button>
+              </p>
+              </div>
+              <div class="column20">
+              <p>
+                Or Enter an Ethereum wallet address and click below the Credit Score associated with that wallet
+              </p>
+              <input type="text" id="addressBar" ></input>
+              </div>
+              <div class="column20">
+              <p>
+                <button id="selfclick" onClick={this.checkScore2}>Check Their Score </button>
+              </p>
+              </div>
+              <div class="column20">
+              <p>
+                <text align="center">Your Credit Token Balance: <strong>{this.state.creditTokenBalance}</strong> </text>
+              </p>
+              </div>
+          </div>
+          <br></br>
+          <div class="row">
+            <h2 align="left"> Start a New Loan </h2>
           </div>
         </div>
       </div>
