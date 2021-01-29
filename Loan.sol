@@ -17,9 +17,17 @@ contract Loan{
     CreditToken constant public creditToken = CreditToken(0x0Af46820AEB180757A473B443B02fc511f4feffe);
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
-    
+    uint immutable public creationTime;
     address payable immutable  public borrower;
     uint immutable public loanAmount;
+    uint immutable public loanTerm;
+    uint public lastPayment;
+    uint public principal = 0;
+    uint immutable public interestRate;
+    uint public interestsPaid = 0;
+    uint public spamFee = 150;
+    uint public paidFees = 0;
+    
     
     enum States {
         WaitingOnCollateral,
@@ -39,17 +47,22 @@ contract Loan{
         uint _collateralRequired, //the Ether amount of the collateral in weis
         address payable _borrower, //address of the borroweaddress
         uint _creditTokensRequired, // the Credit Tokens neccessary to put up as stake
-        uint _loanAmount //The amount of Ether that is going to be lended to the borrower (weis)
+        uint _loanAmount, //The amount of Ether that is going to be lended to the borrower (weis)
+        uint _loanTerm, // in days
+        uint _interestRate // in percentual points muliplied by 100 (i.e. 1.5% = 150)
         )
         payable{ // The constructor is payable because it will receive the Ether to be lended at creation time
         
         require(msg.value == _loanAmount); 
         
+        creationTime = block.timestamp;
+        lastPayment = block.timestamp;
         collateralRequired = _collateralRequired;
-        //creditToken = CreditToken(tokenAddr);
+        loanTerm = _loanTerm;
         borrower = _borrower;
         loanAmount = _loanAmount;
         creditTokensRequired = _creditTokensRequired;
+        interestRate = _interestRate;
         
         state = States.WaitingOnCollateral;
     }
@@ -68,9 +81,27 @@ contract Loan{
     //to the address of the Loan Contract which will be handled by this method and initiate the 
     //disbursement of the loan.
     receive() external payable{
-        require(msg.value >= collateralRequired * 1 wei, "Your collateral is not enough for this loan.");
         
-        //TO-DO: take care of excesive Ether sent, or simply give it back at the end
+        
+        if (state == States.WaitingOnCollateral){
+            takeCollateralDisburseLoan();
+        }
+        else if(state == States.Active){
+            // the payment has to be able to cover at least the interests borrowed
+            uint interests = calculateInteresestsofPayment();
+            require( msg.value >= interests, "Your payment has to cover at least the interests owed today." );
+            interestsPaid += interests;
+            principal -= (msg.value - interests);
+        }
+    }
+    
+    function takeCollateralDisburseLoan() internal{
+        
+        uint thisSpamFee = (collateralRequired * spamFee)/10000;
+        require(msg.value >= (collateralRequired + thisSpamFee) * 1 wei, "Your collateral is not enough for this loan.");
+        
+        paidFees += thisSpamFee;
+        uint collateralSent = msg.value - thisSpamFee;
         
         //..Now that the borrower has put the ETH as collateral, we take the CreditTokens for the loan.
         nextState();
@@ -80,8 +111,13 @@ contract Loan{
         nextState();
         disburseLoan();
         
-        nextState();
+        principal = loanAmount;
+        //Taking care of excesive Ether sent: //ALSO, TAKE CARE OF ATTACK WHERE THE EXCESIVE ETHER WOULD BE ENOUH TO PAYOFF THE DEBT
+        if(collateralSent > collateralRequired){
+            principal -= (collateralSent - collateralRequired);
+        }
         
+        nextState();
     }
         
     //the onlyOnState modifier works around the fact that payable functions cannot be internal nor private
@@ -103,6 +139,7 @@ contract Loan{
     
     function disburseLoan() private onlyOnState( States.DisbursingLoan ) returns(bool success){
         borrower.transfer(loanAmount);
+        principal = loanAmount;
         return true;
     }
     
@@ -114,5 +151,20 @@ contract Loan{
     function returnAllCreditTokens() public returns(bool success){ //SET TO PRIVATE!!!
         creditToken.transfer(borrower, creditToken.balanceOf(address(this) ) );
         return true;
+    }
+    
+    // function getInterestsOwed() public view returns (uint){
+    //     uint interestsOwedToday =  calculateInteresestsofPayment();
+    //     return interestsOwedToday;
+    // }
+    
+    function calculateInteresestsofPayment() public view returns(uint){
+        //###### REAL CODE (IN DAYS) ######
+        // uint nDays = (block.timestamp  - lastPayment)/(1 days);
+        // uint interestsPct = ( 10000 + interestRate )**nDays - 10000;
+        
+        //###### TEST CODE (IN MINUTES) #######
+        uint nDays = (block.timestamp  - lastPayment)/60;
+        return interestRate*nDays*principal/10000;
     }
 }
