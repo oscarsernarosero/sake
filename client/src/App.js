@@ -39,7 +39,7 @@ class App extends Component {
   };
   checkScore = async () => {
     const { accounts, contract } = this.state;
-    contract.options.address="0x42701283Fd609123AeBfde7e8aC433b0C7190E4E"
+    contract.options.address="0x0Af46820AEB180757A473B443B02fc511f4feffe"
     // Stores a given value, 5 by default.
     var response = ""
     await contract.methods.balanceOf(accounts[0]).call({ from: accounts[0] })
