@@ -77,7 +77,8 @@ contract LendingPool is Owned {
     }
     
     function createLoan( uint _collateralRequired,address payable _borrower,
-                        uint _creditTokensRequired, uint _loanAmount ) public returns (address) {
+                        uint _creditTokensRequired, uint _loanAmount,uint _loanTerm, // in days
+                        uint _interestRate  ) public returns (address) {
                             
                             
         uint priorBalance = address(this).balance;            
@@ -86,7 +87,9 @@ contract LendingPool is Owned {
                                  _collateralRequired,
                                  _borrower,
                                  _creditTokensRequired,
-                                 _loanAmount
+                                 _loanAmount,
+                                 _loanTerm, // in days
+                                 _interestRate 
                              );
                              
          creditToken.whitelistAddress ( address(newLoan) );

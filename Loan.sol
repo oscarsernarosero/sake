@@ -15,6 +15,7 @@ contract CreditToken {
 contract Loan{
     
     CreditToken constant public creditToken = CreditToken(0x0Af46820AEB180757A473B443B02fc511f4feffe);
+    address immutable public lendingPool;
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
     uint immutable public creationTime;
@@ -22,7 +23,8 @@ contract Loan{
     uint immutable public loanAmount;
     uint immutable public loanTerm;
     uint public lastPayment;
-    uint public principal = 0;
+    int public principal = 0;
+    uint public paidBack = 0;
     uint immutable public interestRate;
     uint public interestsPaid = 0;
     uint public spamFee = 150;
@@ -56,6 +58,7 @@ contract Loan{
         require(msg.value == _loanAmount); 
         
         creationTime = block.timestamp;
+        lendingPool = msg.sender;
         lastPayment = block.timestamp;
         collateralRequired = _collateralRequired;
         loanTerm = _loanTerm;
@@ -82,22 +85,17 @@ contract Loan{
     //disbursement of the loan.
     receive() external payable{
         
-        
         if (state == States.WaitingOnCollateral){
             takeCollateralDisburseLoan();
         }
         else if(state == States.Active){
-            // the payment has to be able to cover at least the interests borrowed
-            uint interests = calculateInteresestsofPayment();
-            require( msg.value >= interests, "Your payment has to cover at least the interests owed today." );
-            interestsPaid += interests;
-            principal -= (msg.value - interests);
+            receivePayment();
         }
     }
     
     function takeCollateralDisburseLoan() internal{
         
-        uint thisSpamFee = (collateralRequired * spamFee)/10000;
+        uint thisSpamFee = (loanAmount * spamFee)/10000;
         require(msg.value >= (collateralRequired + thisSpamFee) * 1 wei, "Your collateral is not enough for this loan.");
         
         paidFees += thisSpamFee;
@@ -111,16 +109,38 @@ contract Loan{
         nextState();
         disburseLoan();
         
-        principal = loanAmount;
+        principal = int(loanAmount);
         //Taking care of excesive Ether sent: //ALSO, TAKE CARE OF ATTACK WHERE THE EXCESIVE ETHER WOULD BE ENOUH TO PAYOFF THE DEBT
         if(collateralSent > collateralRequired){
-            principal -= (collateralSent - collateralRequired);
+            principal -= int(collateralSent - collateralRequired);
+            paidBack += (collateralSent - collateralRequired);
         }
         
         nextState();
     }
+    
+    function receivePayment() internal{
+        // the payment has to be able to cover at least the interests borrowed
+            uint interests = calculateInteresestsofPayment();
+            require( msg.value >= interests, "Your payment has to cover at least the interests owed today." );
+            interestsPaid += interests;
+            uint toPrincipal = msg.value - interests;
+            principal -= int(toPrincipal);
+            paidBack += toPrincipal;
+            
+            if(principal<=0){
+                closeLoan();
+            }
+            lastPayment = block.timestamp;
+    }
+    
+    function closeLoan()internal onlyOnState(States.Active){
+        payPool();
+        returnAllCreditTokens();
+        returnCollateral();
+        state = States.PaidInFull;
+    }
         
-    //the onlyOnState modifier works around the fact that payable functions cannot be internal nor private
     function getStake() public payable onlyOnState( States.TakingStake) returns (bool success){
         
         uint256 allowance = creditToken.allowance(borrower, address(this));
@@ -139,12 +159,18 @@ contract Loan{
     
     function disburseLoan() private onlyOnState( States.DisbursingLoan ) returns(bool success){
         borrower.transfer(loanAmount);
-        principal = loanAmount;
+        principal = int(loanAmount);
         return true;
     }
     
     function returnCollateral() public returns(bool success){ //SET TO PRIVATE!!!
+        //borrower.transfer(collateralRequired);
         borrower.transfer(address(this).balance);
+        return true;
+    }
+    
+    function payPool() public returns(bool success){ //SET TO PRIVATE!!!
+        payable(lendingPool).transfer(paidFees + interestsPaid + paidBack);
         return true;
     }
     
@@ -153,11 +179,6 @@ contract Loan{
         return true;
     }
     
-    // function getInterestsOwed() public view returns (uint){
-    //     uint interestsOwedToday =  calculateInteresestsofPayment();
-    //     return interestsOwedToday;
-    // }
-    
     function calculateInteresestsofPayment() public view returns(uint){
         //###### REAL CODE (IN DAYS) ######
         // uint nDays = (block.timestamp  - lastPayment)/(1 days);
@@ -165,6 +186,16 @@ contract Loan{
         
         //###### TEST CODE (IN MINUTES) #######
         uint nDays = (block.timestamp  - lastPayment)/60;
-        return interestRate*nDays*principal/10000;
+        return interestRate*nDays*uint(principal)/10000;
+    }
+    
+    function howMuchToPayOff() public view returns(uint){
+        uint interests = calculateInteresestsofPayment();
+        if (principal >= 0){
+            return uint(principal) + interests;
+        }else{
+            return 0;
+        }
+        
     }
 }
