@@ -84,8 +84,8 @@ class App extends Component {
       <div className="App">
         <div class="body">
           <div class="row">
-            <div class="column">
-              <h1>Welcome to your DeFi Credit Score & Lending Platform</h1>
+            <div class="column75">
+              <h1>Welcome to Saké 🍶  Your DeFi Credit Score & Lending Platform </h1>
               <p align="left"><strong>User: </strong><div id="userAddress" align="left"></div></p>
             </div>
             <div class="column2">
@@ -96,8 +96,69 @@ class App extends Component {
           </div>
           <br></br>
           <div class="row">
-              <h2 align="left">Current Active Loans</h2>
-              <div class="column20">
+              <h2 align="left"><u>Current Active Loans</u></h2>
+              <table id="loans">
+              <tr>
+                <th>Nickname</th>
+                <th>Contract Address</th>
+                <th>Amount Loaned</th>
+                <th>Leverage Provided</th>
+                <th>Credit Tokens Used</th>
+                <th>Interest Rate</th>
+                <th>Maturity Date</th>
+                <th>Remaining Balance</th>
+                <th>Payment</th>
+              </tr>
+              <tr>
+                <td>Trading Leverage</td>
+                <td>0x0Af46820AEB180757A473B443B02fc511f4feffe</td>
+                <td>100.000000 (ETH)</td>
+                <td>10.000000 (ETH)</td>
+                <td>550 (CT)</td>
+                <td>10.5%</td>
+                <td>Mar 3th, 2021 (615 Blocks)</td>
+                <td>100.00000000 (ETH)</td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              <tr>
+                <td>Car Loan</td>
+                <td>0x5f7ff00f9a9eb1746ba3e598b011c37d90947536</td>
+                <td>8.200000 (ETH)</td>
+                <td>2.000000 (ETH)</td>
+                <td>150 (CT)</td>
+                <td>5.5%</td>
+                <td>Feb 8th, 2021 (325 Blocks)</td>
+                <td>3.128339 (ETH)</td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              <tr>
+                <td>Mining Bills</td>
+                <td>0x5CC55D91a7C360ce494c5405e3E6B0518173A069</td>
+                <td>1.200000 (ETH)</td>
+                <td>0.2400000 (ETH)</td>
+                <td>50 (CT)</td>
+                <td>6.9%</td>
+                <td>Feb 1th, 2021 (137 Blocks)</td>
+                <td>0.198559 (ETH)</td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              <tr>
+                <td>ASIC Hardware</td>
+                <td>0x0Af46820AEB180757A473B443B02fc511f4feffe</td>
+                <td>5.500000 (ETH)</td>
+                <td>0.500000 (ETH)</td>
+                <td>450 (CT)</td>
+                <td>12.0%</td>
+                <td>April 9th, 2021 (1125 Blocks)</td>
+                <td>5.500000 (ETH)</td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              </table>
+          </div>
+          <br></br>
+          <div class="row">
+            <h2 align="left"><u>Start a New Loan</u></h2>
+            <div class="column20">
                 Click the button to check your Credit Score associated with your current attached Web3 wallet
               </div>
               <div class="column20">
@@ -121,10 +182,6 @@ class App extends Component {
                 <text align="center">Your Credit Token Balance: <strong>{this.state.creditTokenBalance}</strong> </text>
               </p>
               </div>
-          </div>
-          <br></br>
-          <div class="row">
-            <h2 align="left"> Start a New Loan </h2>
           </div>
         </div>
       </div>
