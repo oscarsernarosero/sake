@@ -6,9 +6,10 @@ import getWeb3 from "./getWeb3";
 
 import "./App.css";
 
+const creditTokenAddress = "0x0Af46820AEB180757A473B443B02fc511f4feffe"
 
 class App extends Component {
-  state = { storageValue: 0, web3: null, accounts: null, contract: null };
+  state = { creditTokenBalance: 0, web3: null, accounts: null, contract: null };
 
   componentDidMount = async () => {
     try {
@@ -17,6 +18,7 @@ class App extends Component {
 
       // Use web3 to get the user's accounts.
       const accounts = await web3.eth.getAccounts();
+      
 
       // Get the contract instance.
       const networkId = await web3.eth.net.getId();
@@ -25,10 +27,16 @@ class App extends Component {
         CreditTokenContract.abi,
         deployedNetwork && deployedNetwork.address,
       );
-
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
       this.setState({ web3, accounts, contract: instance });
+
+      var userAddress = accounts[0];
+      document.getElementById('userAddress').innerHTML = userAddress;
+      var contract = instance;
+      contract.options.address=creditTokenAddress;
+      this.setState({ creditTokenBalance: await contract.methods.balanceOf(accounts[0]).call({ from: accounts[0] }) })
+
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(
@@ -37,70 +45,71 @@ class App extends Component {
       console.error(error);
     }
   };
+  
   checkScore = async () => {
     const { accounts, contract } = this.state;
-    contract.options.address="0x0Af46820AEB180757A473B443B02fc511f4feffe"
-    // Stores a given value, 5 by default.
+    contract.options.address=creditTokenAddress
     var response = ""
     await contract.methods.balanceOf(accounts[0]).call({ from: accounts[0] })
     .then(function(result){
       response = result / 1000
     });
-    console.log(response)
     // Get the value from the contract to prove it worked.
-    //const response = await contract.methods.get().call();
+    //const response = await contract.methods.function().call();
 
     // Update state with the result.
-    this.setState({ storageValue: response });
+    this.setState({ creditTokenBalance: response });
   };
 
   checkScore2 = async () => {
     const { accounts, contract } = this.state;
-    contract.options.address="0x42701283Fd609123AeBfde7e8aC433b0C7190E4E";
+    contract.options.address=creditTokenAddress;
     var addressBarEntry = document.getElementById("addressBar").value;
     console.log(addressBarEntry);
-    // Stores a given value, 5 by default.
     var response = "";
     await contract.methods.balanceOf(addressBarEntry).call({ from: accounts[0] })
     .then(function(result){
       response = result / 1000
     });
-    console.log(response);
-    // Get the value from the contract to prove it worked.
-    //const response = await contract.methods.get().call();
-
-    // Update state with the result.
-    this.setState({ storageValue: response });
+ 
+    this.setState({ creditTokenBalance: response });
   };
 
   render() {
+    
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
     return (
       <div className="App">
-        <h1>Welcome to you DeFi Credit Score</h1>
-        <p>The original home to your Crypto Credit Score</p>
-        <h2>Get Your Score Below</h2>
-        <p>
-          Click the button below to check your Credit Score associated with your current attached Web3 wallet
-        </p>
-        <p>
-          <button id="selfclick" onClick={this.checkScore}>Check Your Score </button>
-        </p>
-
-        <p>
-          Or Enter an Ethereum wallet address and click below the Credit Score associated with that wallet
-        </p>
-        <input
-          type="text"
-          id="addressBar"
-        />
-        <p>
-          <button id="selfclick" onClick={this.checkScore2}>Check Their Score </button>
-        </p>
-        <p></p>
-        <div>Your Score is: <strong>{this.state.storageValue}</strong></div>
+        <div class="body">
+          <div class="left">
+            <h1>Welcome to your DeFi Credit Score</h1>
+            <p><div id="userAddress"></div></p>
+            <h2>Get Your Score Now</h2>
+          </div>
+          <div class="right">
+            <p>
+              Click the button below to check your Credit Score associated with your current attached Web3 wallet
+            </p>
+            <p>
+              <button id="selfclick" onClick={this.checkScore}>Check Your Score </button>
+            </p>
+            <p>
+              Or Enter an Ethereum wallet address and click below the Credit Score associated with that wallet
+            </p>
+            <input
+              type="text"
+              id="addressBar"
+            />
+            <p>
+              <button id="selfclick" onClick={this.checkScore2}>Check Their Score </button>
+            </p>
+            <p>
+              <text align="center">Your Credit Token Balance: <strong>{this.state.creditTokenBalance}</strong> </text>
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
