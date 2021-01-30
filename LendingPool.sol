@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "Loan.sol";
@@ -21,7 +22,7 @@ contract Owned {
 contract LendingPool is Owned {
     
     address[] private lenders;
-    CreditToken constant public creditToken = CreditToken(0x0Af46820AEB180757A473B443B02fc511f4feffe);
+    CreditToken constant public creditToken = CreditToken(0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A);
     
     uint public immutable maxSize;
     mapping( address => uint ) public balances;
@@ -78,7 +79,7 @@ contract LendingPool is Owned {
     
     function createLoan( uint _collateralRequired,address payable _borrower,
                         uint _creditTokensRequired, uint _loanAmount,uint _loanTerm, // in days
-                        uint _interestRate  ) public returns (address) {
+                        uint _interestRate  ) public {
                             
                             
         uint priorBalance = address(this).balance;            

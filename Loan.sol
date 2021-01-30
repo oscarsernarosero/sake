@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 
 contract CreditToken {
     
@@ -16,7 +18,7 @@ contract CreditToken {
 
 contract Loan{
     
-    CreditToken constant public creditToken = CreditToken(0x0Af46820AEB180757A473B443B02fc511f4feffe);
+    CreditToken constant public creditToken = CreditToken(0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A);
     address immutable public lendingPool;
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
@@ -132,6 +134,8 @@ contract Loan{
             paidBack += toPrincipal;
             
             if(principal<=0){
+                //we make sure that the excesive payment doesn't go to the pool.
+                paidBack -= uint(principal);
                 closeLoan();
             }
             lastPayment = block.timestamp;
@@ -169,6 +173,8 @@ contract Loan{
     
     function returnCollateral() public returns(bool success){ //SET TO PRIVATE!!!
         //borrower.transfer(collateralRequired);
+        //We return to the borrower all the money left in the loan since we have already
+        //paid the pool (interests, fees and loanAmount)
         borrower.transfer(address(this).balance);
         return true;
     }
@@ -176,14 +182,14 @@ contract Loan{
     function changeCreditScore() internal {
         calculateCreditChange();
         if (creditChange > 10000){
-            creditToken.mint(borrower, (creditChange * creditTokensRequired)/10000);
+            creditToken.mint(borrower, ( (creditChange - 10000) * creditTokensRequired)/10000);
         }else if (creditChange < 10000){
             creditToken.burn(borrower, ((10000 - creditChange) * creditTokensRequired)/10000);
         }
     }
     
     function calculateCreditChange() internal{
-        //Returns percentage change expressed in hundreth or percentual point. i.e.: 1 = 0.01% ; 100 = 1%; 1000 = 10%
+        //percentage change expressed in hundreth or percentual points. i.e.: 1 = 0.01% ; 100 = 1%; 1000 = 10%
         if ( state == States.Active ){
             creditChange = 10000 + (interestsPaid*2*10000)/(loanAmount * 3);
         }

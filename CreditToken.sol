@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 interface ERC20Interface {
 
-    function totalSupply() external view returns (uint256);
+    function totalSupply() external view returns (uint);
     function balanceOf(address tokenOwner) external view returns (uint balance);
     function allowance(address tokenOwner, address spender) external view returns (uint remaining);
     function transfer(address to, uint tokens) external returns (bool success);
@@ -78,8 +79,8 @@ contract Whitelist {
 
 contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
         
-    string public name;
-    string public symbol;
+    bytes32 public name;
+    bytes32 public symbol;
     uint8 public decimals;
     address [] whiteList;
     
