@@ -158,29 +158,55 @@ class App extends Component {
           <br></br>
           <div class="row">
             <h2 align="left"><u>Start a New Loan</u></h2>
-            <div class="column20">
-                Click the button to check your Credit Score associated with your current attached Web3 wallet
+            <div class="column15">
+                Loan Nickname
+                <br></br>
+                <input type="text" id="loanNicknameBar" ></input>
               </div>
-              <div class="column20">
+              <div class="column15">
+              Asset to Recieve
+                <br></br>
+                <div>
+                  <select>
+                    <option value="ETH">Ethereum (ETH)</option>
+                    <option value="BTC">Bitcoin (BTC)</option>
+                    <option value="AAVE">AAVE (AAVE)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="column15">
+                Amount to be Loaned
+                <br></br>
+                <input type="text" id="loanAmountBar" ></input>
+              </div>
+              <div class="column15">
+                Duration of the Loan
+                <br></br>
+                <input type="text" id="loanDurationBar" ></input>
+              </div>
+              <div class="column15">
+                Amount of CreditTokens to Lock
+                <br></br>
+                <input type="text" id="loanDurationBar" ></input>
+              </div>
+              <div class="column15">
               <p>
-                <button id="selfclick" onClick={this.checkScore}>Check Your Score </button>
+                <button class="dropbtn" id="selfclick" onClick={this.checkScore2}>Calculate Loan</button>
               </p>
               </div>
-              <div class="column20">
-              <p>
-                Or Enter an Ethereum wallet address and click below the Credit Score associated with that wallet
-              </p>
-              <input type="text" id="addressBar" ></input>
-              </div>
-              <div class="column20">
-              <p>
-                <button id="selfclick" onClick={this.checkScore2}>Check Their Score </button>
-              </p>
-              </div>
-              <div class="column20">
-              <p>
-                <text align="center">Your Credit Token Balance: <strong>{this.state.creditTokenBalance}</strong> </text>
-              </p>
+              <div class="row">
+                <div class="column20">
+                  <text align="center">Your Calculated Interest Rate: <div id="loanPercent"><strong>12%</strong></div></text>
+                </div>
+                <div class="column20">
+                  <text align="center">Your Collateral Required: <div id="loanPercent"><strong>1.25 (ETH)</strong></div></text>
+                </div>
+                <div class="column20">
+                  <text align="center">Total Cost of Loan: <div id="loanPercent"><strong>10.25 (ETH)</strong></div></text>
+                </div>
+                <div class="column25">
+                  <text align="center">Contract Deposit Address: <div id="loanPercent"><strong>0x0Af46820AEB180757A473B443B02fc511f4feffe</strong></div></text>
+                </div>
               </div>
           </div>
         </div>
