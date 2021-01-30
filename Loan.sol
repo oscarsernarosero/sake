@@ -8,7 +8,9 @@ contract CreditToken {
     function allowance(address, address ) public view  returns (uint ) {}
     function transfer(address , uint ) external returns (bool ){}
     function whitelistAddress (address ) external {}
-    function approve(address owner, address spender, uint tokens) external returns (bool success){}
+    function approve(address, address, uint) external returns (bool){}
+    function mint(address, uint) external {}
+    function burn(address, uint) external {}
 }
 
 
@@ -29,6 +31,7 @@ contract Loan{
     uint public interestsPaid = 0;
     uint public spamFee = 150;
     uint public paidFees = 0;
+    uint public creditChange = 0;
     
     
     enum States {
@@ -137,6 +140,7 @@ contract Loan{
     function closeLoan()internal onlyOnState(States.Active){
         payPool();
         returnAllCreditTokens();
+        changeCreditScore();
         returnCollateral();
         state = States.PaidInFull;
     }
@@ -167,6 +171,31 @@ contract Loan{
         //borrower.transfer(collateralRequired);
         borrower.transfer(address(this).balance);
         return true;
+    }
+    
+    function changeCreditScore() internal {
+        calculateCreditChange();
+        if (creditChange > 10000){
+            creditToken.mint(borrower, (creditChange * creditTokensRequired)/10000);
+        }else if (creditChange < 10000){
+            creditToken.burn(borrower, ((10000 - creditChange) * creditTokensRequired)/10000);
+        }
+    }
+    
+    function calculateCreditChange() internal{
+        //Returns percentage change expressed in hundreth or percentual point. i.e.: 1 = 0.01% ; 100 = 1%; 1000 = 10%
+        if ( state == States.Active ){
+            creditChange = 10000 + (interestsPaid*2*10000)/(loanAmount * 3);
+        }
+        else if (state == States.Late){
+           if (block.timestamp < (loanTerm * 1 minutes * 12)/10 + creationTime ){ //CHANGE TO days IN PRODUCTION
+               uint x = block.timestamp - loanTerm * 1 minutes - creationTime;//CHANGE TO days IN PRODUCTION
+               uint m =  ( 10000 + (interestsPaid*10000)/(loanAmount * 3) ) / ((loanTerm * 1 minutes * 2)/10 );//CHANGE TO days IN PRODUCTION
+               uint b = (interestsPaid*2*10000)/(loanAmount * 3);
+               creditChange =  b - m*x;
+           }else
+            {creditChange = 0;}
+        }
     }
     
     function payPool() public returns(bool success){ //SET TO PRIVATE!!!
