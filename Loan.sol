@@ -15,11 +15,14 @@ contract CreditToken {
     function burn(address, uint) external {}
 }
 
+contract _LendingPool{
+    function receiveFromLoan() external payable{}
+}
 
 contract Loan{
     
     CreditToken constant public creditToken = CreditToken(0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A);
-    address immutable public lendingPool;
+    _LendingPool immutable public lendingPool;
     uint immutable public collateralRequired;
     uint immutable public creditTokensRequired;
     uint immutable public creationTime;
@@ -27,13 +30,13 @@ contract Loan{
     uint immutable public loanAmount;
     uint immutable public loanTerm;
     uint public lastPayment;
-    int public principal = 0;
-    uint public paidBack = 0;
+    int public principal;
+    uint public paidBack;
     uint immutable public interestRate;
-    uint public interestsPaid = 0;
+    uint public interestsPaid;
     uint public spamFee = 150;
-    uint public paidFees = 0;
-    uint public creditChange = 0;
+    uint public paidFees;
+    uint public creditChange;
     
     
     enum States {
@@ -63,7 +66,7 @@ contract Loan{
         require(msg.value == _loanAmount); 
         
         creationTime = block.timestamp;
-        lendingPool = msg.sender;
+        lendingPool = _LendingPool(msg.sender);
         lastPayment = block.timestamp;
         collateralRequired = _collateralRequired;
         loanTerm = _loanTerm;
@@ -132,21 +135,23 @@ contract Loan{
             uint toPrincipal = msg.value - interests;
             principal -= int(toPrincipal);
             paidBack += toPrincipal;
-            
-            if(principal<=0){
-                //we make sure that the excesive payment doesn't go to the pool.
-                paidBack -= uint(principal);
+            if(principal <= 0 ){
+                state = States.PaidInFull;
+                if (principal<0){
+                    paidBack -= uint(-principal);
+                }
                 closeLoan();
             }
             lastPayment = block.timestamp;
     }
     
-    function closeLoan()internal onlyOnState(States.Active){
-        payPool();
-        returnAllCreditTokens();
-        changeCreditScore();
-        returnCollateral();
-        state = States.PaidInFull;
+    function closeLoan()internal onlyOnState(States.PaidInFull){
+        
+        require(payPool(),"Could not pay pool");
+        require(returnAllCreditTokens(),"Could not return credit tokens");
+        
+        require(returnCollateral(),"Could return collateral");
+        require(changeCreditScore(),"Could not change credit score");
     }
         
     function getStake() public payable onlyOnState( States.TakingStake) returns (bool success){
@@ -179,21 +184,24 @@ contract Loan{
         return true;
     }
     
-    function changeCreditScore() internal {
+    function changeCreditScore() internal returns (bool success) { 
         calculateCreditChange();
         if (creditChange > 10000){
-            creditToken.mint(borrower, ( (creditChange - 10000) * creditTokensRequired)/10000);
+            uint mintAmount = ( (creditChange - 10000) * creditTokensRequired)/10000;
+            creditToken.mint(borrower,mintAmount );
         }else if (creditChange < 10000){
-            creditToken.burn(borrower, ((10000 - creditChange) * creditTokensRequired)/10000);
+            uint burnAmount = ((10000 - creditChange) * creditTokensRequired)/10000;
+            creditToken.burn(borrower, burnAmount);
         }
+        return true;
     }
     
     function calculateCreditChange() internal{
         //percentage change expressed in hundreth or percentual points. i.e.: 1 = 0.01% ; 100 = 1%; 1000 = 10%
-        if ( state == States.Active ){
+        if ( state != States.Late){
             creditChange = 10000 + (interestsPaid*2*10000)/(loanAmount * 3);
         }
-        else if (state == States.Late){
+        else {
            if (block.timestamp < (loanTerm * 1 minutes * 12)/10 + creationTime ){ //CHANGE TO days IN PRODUCTION
                uint x = block.timestamp - loanTerm * 1 minutes - creationTime;//CHANGE TO days IN PRODUCTION
                uint m =  ( 10000 + (interestsPaid*10000)/(loanAmount * 3) ) / ((loanTerm * 1 minutes * 2)/10 );//CHANGE TO days IN PRODUCTION
@@ -204,8 +212,9 @@ contract Loan{
         }
     }
     
-    function payPool() public returns(bool success){ //SET TO PRIVATE!!!
-        payable(lendingPool).transfer(paidFees + interestsPaid + paidBack);
+    function payPool() internal returns(bool success){
+        uint payment = paidFees + interestsPaid + paidBack;
+        lendingPool.receiveFromLoan{value: payment}();
         return true;
     }
     

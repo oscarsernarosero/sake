@@ -26,8 +26,8 @@ contract LendingPool is Owned {
     
     uint public immutable maxSize;
     mapping( address => uint ) public balances;
-    mapping(address => Loan) public loansOfBorrower;
-    
+    mapping(address => address[]) public loansOfBorrower;
+    mapping(address => uint) public paidByLoan;
     //mapping (address => uint) pendingWithdrawals;
     
     constructor(uint _maxSize){
@@ -40,10 +40,22 @@ contract LendingPool is Owned {
     
     receive() external payable{
         
-        require(address(this).balance + msg.value <= maxSize, "This pool is full");
+        require(address(this).balance <= maxSize, "This pool is full");
+        if (balances[msg.sender] == 0){
+            lenders.push(msg.sender);
+        }
         balances[msg.sender] += msg.value;
-        lenders.push(msg.sender);
         
+    }
+    
+    function receiveFromLoan() external payable{
+        paidByLoan[msg.sender]+=msg.value;
+        //update balances
+         uint  boostBalanceRate = (address(this).balance*10000)/(address(this).balance-msg.value); //(100 times the percentage)
+         uint64 i=0;
+         for (i; i<lenders.length; i++) {
+            balances[lenders[i]] = (balances[lenders[i]] * boostBalanceRate)/10000; 
+            }
     }
     
     function calculateInterestsYield(address lender) public {
@@ -96,10 +108,11 @@ contract LendingPool is Owned {
          creditToken.whitelistAddress ( address(newLoan) );
          creditToken.approve (_borrower, address(newLoan), _creditTokensRequired);
          
-         loansOfBorrower[_borrower] = newLoan;
+         loansOfBorrower[_borrower].push(address(newLoan));
+         
          
          //update balances
-         uint  reductionBalanceRate = (priorBalance - _loanAmount)*10000/priorBalance; //(100 times the percentage)
+         uint  reductionBalanceRate = (address(this).balance*10000)/priorBalance; //(100 times the percentage)
          uint64 i=0;
          for (i; i<lenders.length; i++) {
             balances[lenders[i]] = (balances[lenders[i]] * reductionBalanceRate)/10000; 
