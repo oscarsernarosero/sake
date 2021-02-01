@@ -213,7 +213,7 @@ class App extends Component {
               </div>
               <div class="column15">
               <p>
-                <button class="dropbtn" id="selfclick" onClick={this.checkScore2}>Calculate Loan</button>
+                <button class="loanbtn" id="selfclick" onClick={this.checkScore2}>Calculate Loan</button>
               </p>
               </div>
               <div class="row">
@@ -229,6 +229,11 @@ class App extends Component {
                 <div class="column25">
                   <text align="center">Contract Deposit Address: <div id="loanPercent"><strong>0x0Af46820AEB180757A473B443B02fc511f4feffe</strong></div></text>
                 </div>
+                <div class="column10">
+              <p>
+                <button align="right" class="acceptbtn" id="selfclick" onClick={this.checkScore2}>Accept Loan</button>
+              </p>
+              </div>
               </div>
           </div>
         </div>
