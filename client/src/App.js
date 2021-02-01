@@ -6,10 +6,10 @@ import getWeb3 from "./getWeb3";
 
 import "./App.css";
 
-const creditTokenAddress = "0x0Af46820AEB180757A473B443B02fc511f4feffe"
+const creditTokenAddress = "0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A"
 
 class App extends Component {
-  state = { creditTokenBalance: 0, web3: null, accounts: null, contract: null };
+  state = { creditTokenBalance: 0, web3: null, accounts: null, contract: null, ethBalance: 0 };
 
   componentDidMount = async () => {
     try {
@@ -19,23 +19,45 @@ class App extends Component {
       // Use web3 to get the user's accounts.
       const accounts = await web3.eth.getAccounts();
       
-
-      // Get the contract instance.
+      // Get networkId
       const networkId = await web3.eth.net.getId();
-      const deployedNetwork = CreditTokenContract.networks[networkId];
-      const instance = new web3.eth.Contract(
+
+      // Create contract instances.
+      const creditTokenInstance = new web3.eth.Contract(
         CreditTokenContract.abi,
-        deployedNetwork && deployedNetwork.address,
+        CreditTokenContract.networks[networkId] && CreditTokenContract.networks[networkId].address,
       );
+
+      const loanContractInstance = new web3.eth.Contract(
+        LoanContract.abi,
+        LoanContract.networks[this.networkId] && LoanContract.networks[this.networkId].address
+      )
+
+      const loanAgentInstance = new web3.eth.Contract(
+        LoanAgent.abi,
+        LoanAgent.networks[this.networkId] && LoanAgent.networks[this.networkId].address
+      )
+
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, contract: instance });
+      this.setState({ web3, accounts, contract: creditTokenInstance });
 
+      // "Let" OR "Const" ARE WAYS TO DECLARE VARIABLES NOW
       var userAddress = accounts[0];
       document.getElementById('userAddress').innerHTML = userAddress;
-      var contract = instance;
-      contract.options.address=creditTokenAddress;
-      this.setState({ creditTokenBalance: await contract.methods.balanceOf(accounts[0]).call({ from: accounts[0] }) })
+
+      // "Let" OR "Const" ARE WAYS TO DECLARE VARIABLES NOW
+      var creditTokenContract = creditTokenInstance;
+      creditTokenContract.options.address = creditTokenAddress;
+
+      // MAYBE MAKE THIS A "CONST" VARIABLE?
+      let balanceOfUser = await web3.eth.getBalance(userAddress);
+      let balanceOfUserInEth = web3.utils.fromWei(balanceOfUser, "ether");
+      
+      this.setState({
+        creditTokenBalance: await creditTokenContract.methods.balanceOf(userAddress).call({ from: userAddress }),
+        ethBalance: balanceOfUserInEth
+     })
 
     } catch (error) {
       // Catch any errors for any of the above operations.
@@ -85,13 +107,13 @@ class App extends Component {
         <div class="body">
           <div class="row">
             <div class="column75">
-              <h1>Welcome to Saké 🍶  Your DeFi Credit Score & Lending Platform </h1>
+              <h1>Welcome to Saké 🍶 Your DeFi Credit Score & Lending Platform </h1>
               <p align="left"><strong>User: </strong><div id="userAddress" align="left"></div></p>
             </div>
             <div class="column2">
-              <p>Current Interest Rate:</p>
+              <p>Current Interest Rate: </p>
               <p>Credit Token Balance: <strong> {this.state.creditTokenBalance} </strong></p>
-              <p>Ethereum Balance:</p>
+              <p>Ethereum Balance: <strong>{this.state.ethBalance} ETH</strong></p>
               </div>
           </div>
           <br></br>
@@ -164,7 +186,7 @@ class App extends Component {
                 <input type="text" id="loanNicknameBar" ></input>
               </div>
               <div class="column15">
-              Asset to Recieve
+              Asset to Receive
                 <br></br>
                 <div>
                   <select>
