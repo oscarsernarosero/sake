@@ -21,14 +21,24 @@ contract Owned {
 
 contract LendingPool is Owned {
     
+    struct Balance {
+        uint balance;
+        uint lastPayment;
+        uint totalPayable;
+    }
+    mapping( address => Balance[] ) public balances;
     address[] private lenders;
     CreditToken constant public creditToken = CreditToken(0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A);
     
     uint public immutable maxSize;
-    mapping( address => uint ) public balances;
     mapping(address => address[]) public loansOfBorrower;
     mapping(address => uint) public paidByLoan;
-    //mapping (address => uint) pendingWithdrawals;
+    uint public periodInterest;
+    uint public periodFees;
+    
+    event Log(string msg);
+    event totalInterestWorthyBalanceEvent(address lender,uint balance, bool multipleBalances);
+    event genericUint(string name, uint value);
     
     constructor(uint _maxSize){
         
@@ -41,24 +51,22 @@ contract LendingPool is Owned {
     receive() external payable{
         
         require(address(this).balance <= maxSize, "This pool is full");
-        if (balances[msg.sender] == 0){
+        if (balances[msg.sender].length == 0 ){
+            emit Log("New Lender");
             lenders.push(msg.sender);
         }
-        balances[msg.sender] += msg.value;
+        Balance memory newBalance;
+        newBalance.balance = msg.value;
+        newBalance.lastPayment = block.timestamp;
+        balances[msg.sender].push(newBalance);
+        emit Log("added lender balance");
         
     }
     
-    function receiveFromLoan() external payable{
+    function receiveFromLoan(uint fees, uint interest) external payable{
         paidByLoan[msg.sender]+=msg.value;
-        //update balances
-         uint  boostBalanceRate = (address(this).balance*10000)/(address(this).balance-msg.value); //(100 times the percentage)
-         uint64 i=0;
-         for (i; i<lenders.length; i++) {
-            balances[lenders[i]] = (balances[lenders[i]] * boostBalanceRate)/10000; 
-            }
-    }
-    
-    function calculateInterestsYield(address lender) public {
+        periodFees += fees;
+        periodInterest += interest;
         
     }
     
@@ -66,23 +74,67 @@ contract LendingPool is Owned {
         
     }
     
-    function payLender(address lender)public {
+    function payLenders() public {
+        uint totalInterestWorthyCapital = calculateInterestWorthyCapital();
+        uint yieldRate = ((periodFees + periodInterest) * 1000000)/totalInterestWorthyCapital;
+        emit genericUint("yieldRate", yieldRate);
         
+        for (uint k; k<lenders.length; k++){
+            uint yield = (yieldRate * balances[lenders[k]][0].totalPayable)/1000000;
+            emit genericUint("yield: ", yield);
+            payable(lenders[k]).transfer(yield);
+            balances[lenders[k]][0].totalPayable = 0;
+        }
+        periodFees=0;
+        periodInterest=0;
+    }
+    
+    function calculateInterestWorthyCapital()public returns (uint){
+        uint totalInterestWorthyCapital;
+        
+        for (uint i; i<lenders.length; i++){
+            uint totalInterestWorthyBalance;
+            if (balances[lenders[i]].length>1){
+                uint realBalance;
+                for (uint j; j<balances[lenders[i]].length;j++){
+                    uint balance = balances[lenders[i]][j].balance;
+                    emit genericUint("balance",balance);
+                    uint nDays = (block.timestamp-balances[lenders[i]][j].lastPayment)/60;
+                    emit genericUint("nDays",nDays);
+                    totalInterestWorthyBalance+=balance*nDays;
+                    realBalance+=balance;
+                }
+                //after we have paid the lenders for balances introduced on different times, we
+                //proceed to unify the balances under a single date
+                for (uint j=1; j<balances[lenders[i]].length;j++){
+                    balances[lenders[i]].pop();
+                }
+                balances[lenders[i]][0].balance = realBalance;
+                balances[lenders[i]][0].lastPayment = block.timestamp;
+                balances[lenders[i]][0].totalPayable = totalInterestWorthyBalance;
+                emit totalInterestWorthyBalanceEvent(lenders[i], totalInterestWorthyBalance, true);
+            
+            }else{
+                uint balance = balances[lenders[i]][0].balance;
+                emit genericUint("balance",balance);
+                uint nDays = (block.timestamp-balances[lenders[i]][0].lastPayment)/60;
+                emit genericUint("nDays",nDays);
+                totalInterestWorthyBalance = balance*nDays;
+                balances[lenders[i]][0].totalPayable = totalInterestWorthyBalance;
+                emit totalInterestWorthyBalanceEvent(lenders[i], totalInterestWorthyBalance, false);
+            }
+            totalInterestWorthyCapital+=totalInterestWorthyBalance;
+        }
+        emit genericUint("totalCapital", totalInterestWorthyCapital);
+        return totalInterestWorthyCapital;
     }
     
     function getBalance() public view returns (uint) {
         return address(this).balance;
     }
     
-    function testOnlyLiquidatePool() external onlyOwner returns (bool success){
-        //payable(owner).transfer(address(this).balance);
-        
-        uint64 i=0;
-        for (i; i<lenders.length; i++) {
-            payable(lenders[i]).transfer(balances[lenders[i]]);
-            balances[lenders[i]] = 0; 
-            }
-        return true;
+    function transferAll(address to) public onlyOwner{
+        payable(to).transfer(address(this).balance);
     }
     
     function viewLenders() public view returns (address [] memory) {
@@ -94,7 +146,7 @@ contract LendingPool is Owned {
                         uint _interestRate  ) public {
                             
                             
-        uint priorBalance = address(this).balance;            
+        //uint priorBalance = address(this).balance;            
         //For documentation: https://github.com/ethereum/solidity/blob/develop/Changelog.md#062-2020-01-27
          Loan newLoan = new Loan{value: _loanAmount}(
                                  _collateralRequired,
@@ -110,13 +162,6 @@ contract LendingPool is Owned {
          
          loansOfBorrower[_borrower].push(address(newLoan));
          
-         
-         //update balances
-         uint  reductionBalanceRate = (address(this).balance*10000)/priorBalance; //(100 times the percentage)
-         uint64 i=0;
-         for (i; i<lenders.length; i++) {
-            balances[lenders[i]] = (balances[lenders[i]] * reductionBalanceRate)/10000; 
-            }
      }
     
 }
