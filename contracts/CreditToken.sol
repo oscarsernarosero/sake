@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "Loan.sol";
+import "./Loan.sol";
 
 //safemath?
 
