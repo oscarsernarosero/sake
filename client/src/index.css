@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
@@ -5,9 +9,178 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image: linear-gradient(to bottom right, rgb(6, 2, 68), lightgrey);
+}
+
+.card {
+  background-color: rgb(34, 34, 34);
+  padding: 20px;
+  margin-top: 20px;
+  
+}
+
+/* Style the header */
+.header {
+  background-color: #f1f1f1;
+  position: sticky;
+  top: 0;
+}
+
+.footer {
+  text-align: center;
+  bottom: 0;
+  background-color: grey;
+}
+
+.column {
+  float: left;
+  width: 50%;
+}
+
+.column2 {
+  float: right;
+  width: 25%;
+  text-align: right;
+  vertical-align: bottom;
+  display: table-cell;
+}
+
+.column75 {
+  float: left;
+  width: 75%;
+}
+
+.column15 {
+  float: left;
+  width:16.6%;
+}
+
+.column20 {
+  float: left;
+  width:20%;
+}
+
+.column25 {
+  float: left;
+  width: 25%;
+}
+
+.row {
+  padding: 1%;
+  background-color: whitesmoke;
+  content: "";
+  display: table;
+  clear: both;
+  width: 100%;
+}
+
+.lower {
+  padding: 2%;
+  background-color: whitesmoke;
+}
+
+/* Style the top navigation bar */
+.topnav {
+  overflow: hidden;
+  background-color: #333;
+  text-align: center;
+}
+
+/* Style the topnav links */
+.topnav a {
+  float: left;
+  display: block;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 40px;
+  text-decoration: none;
+}
+
+/* Change color on hover */
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+h1 {
+  text-align: left;
+	font-family: "Arial Black", Gadget, sans-serifpx;
+	color: #02175e;
+	text-shadow: rgba(163, 163, 163, 0.7) 3px 3px 2px;
+}
+
+h2 {
+	font-family: "Arial Black", Gadget, sans-serifpx;
+	color: #02175e;
+	text-shadow: rgba(163, 163, 163, 0.7) 3px 3px 2px;
+}
+
+P {
+  text-justify: auto;
+}
+
+#loans {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  padding: 1%;
+}
+
+#loans td, #loans th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#loans tr:nth-child(odd){background-color: rgba(19, 0, 194, 0.062);}
+
+#loans tr:hover {background-color: #ddd;}
+
+#loans th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-image: linear-gradient(to top, rgb(6, 2, 68), rgba(6, 2, 68, 0.418));
+  color: white;
+  
+}
+
+.loanbtn {
+  background-color: rgb(6, 2, 68);
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: 2px;
+  border-top-left-radius:15px;
+  border-top-right-radius:15px;
+  border-bottom-left-radius:15px;
+  border-bottom-right-radius:15px;
+}
+
+.loanbtn:hover  {
+  color:white;
+  background-image: linear-gradient(to bottom, rgb(6, 2, 68), rgba(185, 151, 247, 0.473));
+  border: 3px;
+}
+
+.acceptbtn {
+  background-color: rgb(6, 2, 68);
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: 2px;
+  border-top-left-radius:15px;
+  border-top-right-radius:15px;
+  border-bottom-left-radius:15px;
+  border-bottom-right-radius:15px;
+}
+
+.acceptbtn:hover  {
+  color:white;
+  background-image: linear-gradient(to bottom, rgb(6, 2, 68), rgba(151, 247, 188, 0.473));
+  border: 3px;
 }
