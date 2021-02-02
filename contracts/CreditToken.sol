@@ -1,43 +1,13 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface ERC20Interface {
+import "Loan.sol";
 
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address tokenOwner) external view returns (uint balance);
-    function allowance(address tokenOwner, address spender) external view returns (uint remaining);
-    function transfer(address to, uint tokens) external returns (bool success);
-    function approve(address owner, address spender, uint tokens) external returns (bool success);
-    function transferFrom (address from, address to, uint tokens) external returns (bool success);
-
-
-
-    event Transfer(address indexed from, address indexed to, uint tokens);
-    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
-    
-}
-
-contract SafeMath {
-    function safeAdd(uint a, uint b) internal pure returns (uint c) {
-        c = a + b;
-        require(c >= a);
-    }
-    function safeSub(uint a, uint b) internal pure returns (uint c) {
-        require(b <= a); c = a - b; 
-        
-    } 
-    function safeMul(uint a, uint b) internal pure returns (uint c) { 
-        c = a * b; 
-        require(a == 0 || c / a == b); 
-    } 
-    function safeDiv(uint a, uint b) internal pure returns (uint c) { 
-        require(b > 0);
-        c = a / b;
-    }
-}
+//safemath?
 
 contract Owned {
     
-    address owner;
+    address public owner;
 
     function isOwned() internal {
         owner = msg.sender;
@@ -48,126 +18,105 @@ contract Owned {
         _;
     }
 }
-contract Whitelist {
-    
-    address[] public whitelistedAddress;
-    
-    mapping (address => bool) lendingPoolAddr;
-    
-    modifier onlyWhiteListed {
-            require(lendingPoolAddr[msg.sender]==true,"Not white listed!!");
-            _;   
-    }
-    
-    function whiteListOwner(address owner) internal {
-        lendingPoolAddr[owner] = true;
-        whitelistedAddress.push(owner);
-    }
 
-    function whitelistAddress (address pool) external onlyWhiteListed {
-        lendingPoolAddr[pool] = true;
-        whitelistedAddress.push(pool);
-    }
+contract LendingPool is Owned {
     
-    function blacklistAddress (address pool) external onlyWhiteListed {
-        lendingPoolAddr[pool] = false;
-        whitelistedAddress.push(pool);
-    }
+    address[] private lenders;
+    CreditToken constant public creditToken = CreditToken(0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A);
     
-}
-
-contract CreditToken is ERC20Interface, SafeMath, Owned, Whitelist {
+    uint public immutable maxSize;
+    mapping( address => uint ) public balances;
+    mapping(address => address[]) public loansOfBorrower;
+    mapping(address => uint) public paidByLoan;
+    //mapping (address => uint) pendingWithdrawals;
+    
+    constructor(uint _maxSize){
         
-    string public name;
-    string public symbol;
-    uint8 public decimals;
-    address [] whiteList;
-    
-    uint256 public _totalSupply;
-    
-    mapping(address => uint) balances;
-    mapping(address => mapping(address => uint)) allowed;
-    
-    event LogCoinsMinted(address deliveredTo, uint amount);
-    event LogCoinsBurned(address burnedFrom, uint amount);
-    
-    
-    constructor() {
-        name = "CreditToken";
-        symbol = "CT";
-        decimals = 3;
-        _totalSupply = 0;
+        maxSize = _maxSize;
         
         isOwned();
-        whiteListOwner(msg.sender);
-
-        balances[msg.sender] = _totalSupply;
-        emit Transfer(address(0), msg.sender, _totalSupply);
     }
-
-        function totalSupply() public override view returns (uint) {
-            return _totalSupply - balances[address(0)];
+    
+    
+    receive() external payable{
+        
+        require(address(this).balance <= maxSize, "This pool is full");
+        if (balances[msg.sender] == 0){
+            lenders.push(msg.sender);
         }
+        balances[msg.sender] += msg.value;
         
-        function checkScore() public view returns (uint score) {
-            score = balances[msg.sender];
-            return score;
-        }
+    }
+    
+    function receiveFromLoan() external payable{
+        paidByLoan[msg.sender]+=msg.value;
+        //update balances
+         uint  boostBalanceRate = (address(this).balance*10000)/(address(this).balance-msg.value); //(100 times the percentage)
+         uint64 i=0;
+         for (i; i<lenders.length; i++) {
+            balances[lenders[i]] = (balances[lenders[i]] * boostBalanceRate)/10000; 
+            }
+    }
+    
+    function calculateInterestsYield(address lender) public {
         
-        function balanceOf(address tokenOwner) public view override returns (uint balance) {
-            return balances[tokenOwner];
-        }
+    }
+    
+    function liquidateLoan(address loanAddr) public {
         
-        //This shows how much allowance the spender has to spend the tokenOwner tokens.
-        function allowance(address tokenOwner, address spender) public view override returns (uint remaining) {
-            return allowed[tokenOwner][spender];
-        }
+    }
+    
+    function payLender(address lender)public {
         
-        //should be onlyWhiteListed because this allows an address to spend from anotherone.
-        function approve(address owner, address spender, uint tokens) public override onlyWhiteListed returns (bool success) {
-            allowed[owner][spender] = tokens;
-            emit Approval(owner, spender, tokens);
-            return true;
-        }
+    }
+    
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+    
+    function testOnlyLiquidatePool() external onlyOwner returns (bool success){
+        //payable(owner).transfer(address(this).balance);
         
-        //Use this method if you are the owner of the tokens.
-        function transfer(address to, uint tokens) public override onlyWhiteListed returns (bool success) {
-            balances[msg.sender] = safeSub(balances[msg.sender], tokens);
-            balances[to] = safeAdd(balances[to], tokens);
-            emit Transfer(msg.sender, to, tokens);
-            return true;
-        }
-        
-        //Use this method if you want to transfer tokens of somebody else. You should have allowance first
-        //through the approve method.
-        function  transferFrom(address from, address to, uint tokens) public  override onlyWhiteListed returns (bool success) {
-            
-            require(tokens <= balances[from], "Not enough balance for this tx");
-            balances[from] = safeSub(balances[from], tokens);
-            allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
-            balances[to] = safeAdd(balances[to], tokens);
-            emit Transfer(from, to, tokens);
-            return true;
-        }
-        
-        function viewWhitelist() public view returns (address [] memory) {
-            return whitelistedAddress;
-           // return  whiteList;
-        }
-        
-        function mint(address owner, uint amount) external onlyWhiteListed {
-            balances[owner] += amount;
-            _totalSupply += amount;
-            LogCoinsMinted(owner, amount);
-        }
-        
-        
-        function burn(address owner, uint amount) external onlyWhiteListed {
-            balances[owner] -= amount;
-            _totalSupply -= amount;
-            LogCoinsBurned(owner, amount);
-        }
-        
-        
-        
+        uint64 i=0;
+        for (i; i<lenders.length; i++) {
+            payable(lenders[i]).transfer(balances[lenders[i]]);
+            balances[lenders[i]] = 0; 
+            }
+        return true;
+    }
+    
+    function viewLenders() public view returns (address [] memory) {
+        return lenders;
+    }
+    
+    function createLoan( uint _collateralRequired,address payable _borrower,
+                        uint _creditTokensRequired, uint _loanAmount,uint _loanTerm, // in days
+                        uint _interestRate  ) public {
+                            
+                            
+        uint priorBalance = address(this).balance;            
+        //For documentation: https://github.com/ethereum/solidity/blob/develop/Changelog.md#062-2020-01-27
+         Loan newLoan = new Loan{value: _loanAmount}(
+                                 _collateralRequired,
+                                 _borrower,
+                                 _creditTokensRequired,
+                                 _loanAmount,
+                                 _loanTerm, // in days
+                                 _interestRate 
+                             );
+                             
+         creditToken.whitelistAddress ( address(newLoan) );
+         creditToken.approve (_borrower, address(newLoan), _creditTokensRequired);
+         
+         loansOfBorrower[_borrower].push(address(newLoan));
+         
+         
+         //update balances
+         uint  reductionBalanceRate = (address(this).balance*10000)/priorBalance; //(100 times the percentage)
+         uint64 i=0;
+         for (i; i<lenders.length; i++) {
+            balances[lenders[i]] = (balances[lenders[i]] * reductionBalanceRate)/10000; 
+            }
+     }
+    
 }
