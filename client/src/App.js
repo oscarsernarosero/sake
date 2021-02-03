@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import CreditTokenContract from "./contracts/CreditToken.json";
 import LoanContract from "./contracts/Loan.json";
-import LoanAgent from "./contracts/LoanAgent.json";
 import getWeb3 from "./getWeb3";
 
 import "./App.css";
@@ -33,10 +32,10 @@ class App extends Component {
         LoanContract.networks[this.networkId] && LoanContract.networks[this.networkId].address
       )
 
-      const loanAgentInstance = new web3.eth.Contract(
-        LoanAgent.abi,
-        LoanAgent.networks[this.networkId] && LoanAgent.networks[this.networkId].address
-      )
+      // const loanAgentInstance = new web3.eth.Contract(
+      //   LoanAgent.abi,
+      //   LoanAgent.networks[this.networkId] && LoanAgent.networks[this.networkId].address
+      // )
 
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.

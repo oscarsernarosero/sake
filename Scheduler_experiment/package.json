@@ -1,0 +1,16 @@
+{
+  "name": "scheduler_experiment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ethereum-alarm-clock/cli": "^4.2.1",
+    "@ethereum-alarm-clock/lib": "^0.3.5",
+    "moment": "^2.29.1"
+  }
+}
