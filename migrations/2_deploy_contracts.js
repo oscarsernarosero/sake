@@ -1,7 +1,7 @@
-var CreditToken = artifacts.require("CreditToken.sol"); // First
-var LendingPool = artifacts.require("LendingPool.sol"); // Second
+var CreditToken = artifacts.require("CreditToken"); // First
+var LendingPool = artifacts.require("LendingPool"); // Second
 require("dotenv").config({path: "../.env"});
-var BN = web3.utils.BN;
+// var BN = web3.utils.BN;
 
 // Function to deploy
 module.exports = async function(deployer) {
@@ -9,5 +9,5 @@ module.exports = async function(deployer) {
 
     await deployer.deploy(CreditToken);
 
-    await deployer.deploy(LendingPool, 100);
+    await deployer.deploy(LendingPool, 100); // Need to figure out how to deploy with a Big Number
 }

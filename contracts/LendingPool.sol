@@ -141,27 +141,31 @@ contract LendingPool is Owned {
         return lenders;
     }
     
-    function createLoan( uint _collateralRequired,address payable _borrower,
-                        uint _creditTokensRequired, uint _loanAmount,uint _loanTerm, // in days
-                        uint _interestRate  ) public {
-                            
-                            
+    function createLoan(
+        uint _collateralRequired,
+        address payable _borrower,
+        uint _creditTokensRequired,
+        uint _loanAmount,
+        uint _loanTerm, // in days
+        uint _interestRate
+    )
+        public
+    {
         //uint priorBalance = address(this).balance;            
         //For documentation: https://github.com/ethereum/solidity/blob/develop/Changelog.md#062-2020-01-27
-         Loan newLoan = new Loan{value: _loanAmount}(
-                                 _collateralRequired,
-                                 _borrower,
-                                 _creditTokensRequired,
-                                 _loanAmount,
-                                 _loanTerm, // in days
-                                 _interestRate 
-                             );
+         Loan newLoan = new Loan{value: _loanAmount} (
+            _collateralRequired,
+            _borrower,
+            _creditTokensRequired,
+            _loanAmount,
+            _loanTerm, // in days
+            _interestRate 
+        );
                              
          creditToken.whitelistAddress ( address(newLoan) );
          creditToken.approve (_borrower, address(newLoan), _creditTokensRequired);
          
          loansOfBorrower[_borrower].push(address(newLoan));
-         
      }
     
 }

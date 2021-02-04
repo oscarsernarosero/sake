@@ -1,14 +1,23 @@
 import React, { Component } from "react";
 import CreditTokenContract from "./contracts/CreditToken.json";
 import LoanContract from "./contracts/Loan.json";
+import LendingPool from "./contracts/LendingPool.json";
 import getWeb3 from "./getWeb3";
 
 import "./App.css";
 
-const creditTokenAddress = "0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A"
+const creditTokenAddress = "0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A";
+const lendingPoolAddress = "0x80CE1549e027eB853242B344b91C78a683B35088";
 
 class App extends Component {
-  state = { creditTokenBalance: 0, web3: null, accounts: null, contract: null, ethBalance: 0 };
+  state = {
+    creditTokenBalance: 0,
+    web3: null,
+    accounts: null,
+    contract: null,
+    lendingPoolContract: null,
+    ethBalance: 0
+  };
 
   componentDidMount = async () => {
     try {
@@ -32,14 +41,19 @@ class App extends Component {
         LoanContract.networks[this.networkId] && LoanContract.networks[this.networkId].address
       )
 
-      // const loanAgentInstance = new web3.eth.Contract(
-      //   LoanAgent.abi,
-      //   LoanAgent.networks[this.networkId] && LoanAgent.networks[this.networkId].address
-      // )
+      const lendingPoolInstance = new web3.eth.Contract(
+        LendingPool.abi,
+        LendingPool.networks[this.networkId] && LendingPool.networks[this.networkId].address
+      )
 
       // Set web3, accounts, and contract to the state, and then proceed with an
       // example of interacting with the contract's methods.
-      this.setState({ web3, accounts, contract: creditTokenInstance });
+      this.setState({
+        web3,
+        accounts,
+        contract: creditTokenInstance,
+        lendingPoolContract: lendingPoolInstance
+      });
 
       // "Let" OR "Const" ARE WAYS TO DECLARE VARIABLES NOW
       var userAddress = accounts[0];
@@ -48,6 +62,9 @@ class App extends Component {
       // "Let" OR "Const" ARE WAYS TO DECLARE VARIABLES NOW
       var creditTokenContract = creditTokenInstance;
       creditTokenContract.options.address = creditTokenAddress;
+
+      var lendingPoolContract = lendingPoolInstance;
+      lendingPoolContract.options.address = lendingPoolAddress;
 
       // MAYBE MAKE THIS A "CONST" VARIABLE?
       let balanceOfUser = await web3.eth.getBalance(userAddress);
@@ -95,6 +112,24 @@ class App extends Component {
  
     this.setState({ creditTokenBalance: response });
   };
+
+  handleCreateLoan = async () => {
+    let collateralRequired = document.getElementById("collateralAmountBar").value;
+    let borrower = this.state.accounts[0];
+    let creditTokensRequired = document.getElementById("creditTokenStakingBar").value;
+    let loanAmount = document.getElementById("loanAmountBar").value;
+    let loanLength = document.getElementById("loanLengthBar").value;
+    let interestRate = document.getElementById("loanInterestBar").value;
+
+    await this.state.lendingPoolContract.methods.createLoan(
+      collateralRequired,
+      borrower,
+      creditTokensRequired,
+      loanAmount,
+      loanLength,
+      interestRate
+    ).send({ from: this.state.accounts[0] })
+  }
 
   render() {
     
@@ -196,23 +231,33 @@ class App extends Component {
                 </div>
               </div>
               <div class="column15">
-                Amount to be Loaned
+                Collateral Requied
+                <br></br>
+                <input type="text" id="collateralAmountBar" ></input>
+              </div>
+              <div class="column15">
+                CreditToken Amount to Stake
+                <br></br>
+                <input type="text" id="creditTokenStakingBar" ></input>
+              </div>
+              <div class="column15">
+                Loan Amount
                 <br></br>
                 <input type="text" id="loanAmountBar" ></input>
               </div>
               <div class="column15">
-                Duration of the Loan
+                Loan Length
                 <br></br>
-                <input type="text" id="loanDurationBar" ></input>
+                <input type="text" id="loanLengthBar" ></input>
               </div>
               <div class="column15">
-                Amount of CreditTokens to Lock
+                Loan Interest Rate
                 <br></br>
-                <input type="text" id="loanDurationBar" ></input>
+                <input type="text" id="loanInterestBar" ></input>
               </div>
               <div class="column15">
               <p>
-                <button class="loanbtn" id="selfclick" onClick={this.checkScore2}>Calculate Loan</button>
+                <button class="loanbtn" id="selfclick" onClick={this.handleCreateLoan}>Create Loan</button>
               </p>
               </div>
               <div class="row">
