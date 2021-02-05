@@ -8,6 +8,7 @@ import "./App.css";
 
 const creditTokenAddress = "0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A";
 const lendingPoolAddress = "0x80CE1549e027eB853242B344b91C78a683B35088";
+const loanContractAddress = "0xD0D55fcF0858706a61A20B434e44ca59de34B6B5";
 
 class App extends Component {
   state = {
@@ -52,11 +53,9 @@ class App extends Component {
         lendingPoolContract: lendingPoolInstance
       });
 
-      // "Let" OR "Const" ARE WAYS TO DECLARE VARIABLES NOW
       var userAddress = accounts[0];
       document.getElementById('userAddress').innerHTML = userAddress;
 
-      // "Let" OR "Const" ARE WAYS TO DECLARE VARIABLES NOW
       var creditTokenContract = creditTokenInstance;
       creditTokenContract.options.address = creditTokenAddress;
 
@@ -75,14 +74,14 @@ class App extends Component {
 
       const loanContractInstance = new web3.eth.Contract(
         LoanContract.abi,
-        LoanContract.networks[networkId] && this.state.loansOfBorrower
+        LoanContract.networks[networkId] && await LoanContract.networks[this.networkId].address
       );
 
       var loanContract = loanContractInstance;
-      lendingPoolContract.options.address = this.state.loansOfBorrower;
+      loanContract.options.address = loanContractAddress;
 
       this.setState({
-        loanAmount: await loanContract.methods.loanAmount.call({ from: userAddress })
+        loanAmount: await loanContract.methods.loanAmount().call({ from: userAddress })
       })
 
 
@@ -169,8 +168,7 @@ class App extends Component {
                 <th>Nickname</th>
                 <th>Loan Address</th>
                 <th>Amount Loaned</th>
-                <th>Leverage Provided</th>
-                <th>Credit Tokens Used</th>
+                <th>Credit Tokens Staked</th>
                 <th>Interest Rate</th>
                 <th>Maturity Date</th>
                 <th>Remaining Balance</th>
