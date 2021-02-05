@@ -16,7 +16,9 @@ class App extends Component {
     accounts: null,
     contract: null,
     lendingPoolContract: null,
-    ethBalance: 0
+    ethBalance: 0,
+    loansOfBorrower: null,
+    loanAmount: null
   };
 
   componentDidMount = async () => {
@@ -35,11 +37,6 @@ class App extends Component {
         CreditTokenContract.abi,
         CreditTokenContract.networks[networkId] && CreditTokenContract.networks[networkId].address,
       );
-
-      const loanContractInstance = new web3.eth.Contract(
-        LoanContract.abi,
-        LoanContract.networks[this.networkId] && LoanContract.networks[this.networkId].address
-      )
 
       const lendingPoolInstance = new web3.eth.Contract(
         LendingPool.abi,
@@ -72,8 +69,22 @@ class App extends Component {
       
       this.setState({
         creditTokenBalance: await creditTokenContract.methods.balanceOf(userAddress).call({ from: userAddress }),
-        ethBalance: balanceOfUserInEth
+        ethBalance: balanceOfUserInEth,
+        loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 0).call({ from: userAddress })
      })
+
+      const loanContractInstance = new web3.eth.Contract(
+        LoanContract.abi,
+        LoanContract.networks[networkId] && this.state.loansOfBorrower
+      );
+
+      var loanContract = loanContractInstance;
+      lendingPoolContract.options.address = this.state.loansOfBorrower;
+
+      this.setState({
+        loanAmount: await loanContract.methods.loanAmount.call({ from: userAddress })
+      })
+
 
     } catch (error) {
       // Catch any errors for any of the above operations.
@@ -156,7 +167,7 @@ class App extends Component {
               <table id="loans">
               <tr>
                 <th>Nickname</th>
-                <th>Contract Address</th>
+                <th>Loan Address</th>
                 <th>Amount Loaned</th>
                 <th>Leverage Provided</th>
                 <th>Credit Tokens Used</th>
@@ -166,47 +177,14 @@ class App extends Component {
                 <th>Payment</th>
               </tr>
               <tr>
-                <td>Trading Leverage</td>
-                <td>0x0Af46820AEB180757A473B443B02fc511f4feffe</td>
-                <td>100.000000 (ETH)</td>
-                <td>10.000000 (ETH)</td>
-                <td>550 (CT)</td>
-                <td>10.5%</td>
-                <td>Mar 3th, 2021 (615 Blocks)</td>
-                <td>100.00000000 (ETH)</td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
-              </tr>
-              <tr>
-                <td>Car Loan</td>
-                <td>0x5f7ff00f9a9eb1746ba3e598b011c37d90947536</td>
-                <td>8.200000 (ETH)</td>
-                <td>2.000000 (ETH)</td>
-                <td>150 (CT)</td>
-                <td>5.5%</td>
-                <td>Feb 8th, 2021 (325 Blocks)</td>
-                <td>3.128339 (ETH)</td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
-              </tr>
-              <tr>
-                <td>Mining Bills</td>
-                <td>0x5CC55D91a7C360ce494c5405e3E6B0518173A069</td>
-                <td>1.200000 (ETH)</td>
-                <td>0.2400000 (ETH)</td>
-                <td>50 (CT)</td>
-                <td>6.9%</td>
-                <td>Feb 1th, 2021 (137 Blocks)</td>
-                <td>0.198559 (ETH)</td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
-              </tr>
-              <tr>
-                <td>ASIC Hardware</td>
-                <td>0x0Af46820AEB180757A473B443B02fc511f4feffe</td>
-                <td>5.500000 (ETH)</td>
-                <td>0.500000 (ETH)</td>
-                <td>450 (CT)</td>
-                <td>12.0%</td>
-                <td>April 9th, 2021 (1125 Blocks)</td>
-                <td>5.500000 (ETH)</td>
+                <td> </td>
+                <td>{this.state.loansOfBorrower}</td>
+                <td>{this.state.loanAmount}</td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
                 <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
               </table>
