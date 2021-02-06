@@ -19,7 +19,11 @@ class App extends Component {
     lendingPoolContract: null,
     ethBalance: 0,
     loansOfBorrower: null,
-    loanAmount: null
+    loanAmount: null,
+    creditTokensRequired: null,
+    interestRate: null,
+    creationTime: null,
+    loanTerm: null
   };
 
   componentDidMount = async () => {
@@ -53,35 +57,47 @@ class App extends Component {
         lendingPoolContract: lendingPoolInstance
       });
 
+      // Pull first account of MetaMask, and save to variable
       var userAddress = accounts[0];
       document.getElementById('userAddress').innerHTML = userAddress;
 
+      // Create more contract instances
       var creditTokenContract = creditTokenInstance;
       creditTokenContract.options.address = creditTokenAddress;
 
       var lendingPoolContract = lendingPoolInstance;
       lendingPoolContract.options.address = lendingPoolAddress;
 
-      // MAYBE MAKE THIS A "CONST" VARIABLE?
+      // Get balance of account 1 in MetaMask
       let balanceOfUser = await web3.eth.getBalance(userAddress);
       let balanceOfUserInEth = web3.utils.fromWei(balanceOfUser, "ether");
+
+      let creditTokenBalanceInWei = await creditTokenContract.methods.balanceOf(userAddress).call({ from: userAddress });
+      let creditTokenBalance = web3.utils.fromWei(creditTokenBalanceInWei, "kwei");
       
+      // Set state of user's ETH and CreditToken balance, and active loans
       this.setState({
-        creditTokenBalance: await creditTokenContract.methods.balanceOf(userAddress).call({ from: userAddress }),
+        creditTokenBalance: creditTokenBalance,
         ethBalance: balanceOfUserInEth,
         loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 0).call({ from: userAddress })
      })
 
+     // Create contract instance
       const loanContractInstance = new web3.eth.Contract(
         LoanContract.abi,
         LoanContract.networks[networkId] && await LoanContract.networks[this.networkId].address
       );
 
       var loanContract = loanContractInstance;
-      loanContract.options.address = loanContractAddress;
+      loanContract.options.address = await lendingPoolContract.methods.loansOfBorrower(userAddress, 0).call({ from: userAddress });
 
+      // Set state of details of active contract
       this.setState({
-        loanAmount: await loanContract.methods.loanAmount().call({ from: userAddress })
+        loanAmount: await loanContract.methods.loanAmount().call({ from: userAddress }),
+        creditTokensRequired: await loanContract.methods.creditTokensRequired().call({ from: userAddress }),
+        interestRate: await loanContract.methods.interestRate().call({ from: userAddress }),
+        creationTime: await loanContract.methods.creationTime().call({ from: userAddress }),
+        loanTerm: await loanContract.methods.loanTerm().call({ from: userAddress })
       })
 
 
@@ -123,6 +139,7 @@ class App extends Component {
     this.setState({ creditTokenBalance: response });
   };
 
+  // Function to call createLoan() from LendingPool.sol
   handleCreateLoan = async () => {
     let collateralRequired = document.getElementById("collateralAmountBar").value;
     let borrower = this.state.accounts[0];
@@ -155,8 +172,7 @@ class App extends Component {
               <p align="left"><strong>User: </strong><div id="userAddress" align="left"></div></p>
             </div>
             <div class="column2">
-              <p>Current Interest Rate: </p>
-              <p>Credit Token Balance: <strong> {this.state.creditTokenBalance} </strong></p>
+              <p>CreditToken Balance: <strong> {this.state.creditTokenBalance} </strong></p>
               <p>Ethereum Balance: <strong>{this.state.ethBalance} ETH</strong></p>
               </div>
           </div>
@@ -170,18 +186,18 @@ class App extends Component {
                 <th>Amount Loaned</th>
                 <th>Credit Tokens Staked</th>
                 <th>Interest Rate</th>
-                <th>Maturity Date</th>
+                <th>Block No. at Creation</th>
+                <th>Loan Length in Blocks</th>
                 <th>Remaining Balance</th>
-                <th>Payment</th>
               </tr>
               <tr>
                 <td> </td>
                 <td>{this.state.loansOfBorrower}</td>
                 <td>{this.state.loanAmount}</td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
+                <td>{this.state.creditTokensRequired}</td>
+                <td>{this.state.interestRate}</td>
+                <td>{this.state.creationTime}</td>
+                <td>{this.state.loanTerm}</td>
                 <td> </td>
                 <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
@@ -238,16 +254,16 @@ class App extends Component {
               </div>
               <div class="row">
                 <div class="column20">
-                  <text align="center">Your Calculated Interest Rate: <div id="loanPercent"><strong>12%</strong></div></text>
+                  <text align="center">Your Calculated Interest Rate: <div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column20">
-                  <text align="center">Your Collateral Required: <div id="loanPercent"><strong>1.25 (ETH)</strong></div></text>
+                  <text align="center">Your Collateral Required: <div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column20">
-                  <text align="center">Total Cost of Loan: <div id="loanPercent"><strong>10.25 (ETH)</strong></div></text>
+                  <text align="center">Total Cost of Loan: <div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column25">
-                  <text align="center">Contract Deposit Address: <div id="loanPercent"><strong>0x0Af46820AEB180757A473B443B02fc511f4feffe</strong></div></text>
+                  <text align="center">Contract Deposit Address: <div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column10">
               <p>
