@@ -39,15 +39,15 @@ body {
 
 .column2 {
   float: right;
-  width: 25%;
+  width: 35%;
   text-align: right;
   vertical-align: bottom;
   display: table-cell;
 }
 
-.column75 {
+.column65 {
   float: left;
-  width: 75%;
+  width: 65%;
 }
 
 .column15 {

@@ -16,6 +16,7 @@ class App extends Component {
     accounts: null,
     contract: null,
     lendingPoolContract: null,
+    loanContract: null,
     ethBalance: 0,
     loansOfBorrower: null,
     loanAmount: null,
@@ -24,7 +25,8 @@ class App extends Component {
     creationTime: null,
     loanTerm: null,
     remainingBalance: null,
-    interestOfPayment: null
+    interestOfPayment: null,
+    lendingPoolBalance: null
   };
 
   componentDidMount = async () => {
@@ -80,7 +82,7 @@ class App extends Component {
       this.setState({
         creditTokenBalance: creditTokenBalance,
         ethBalance: balanceOfUserInEth,
-        loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 2).call({ from: userAddress })
+        loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 6).call({ from: userAddress })
      })
 
      // Create contract instance
@@ -92,15 +94,20 @@ class App extends Component {
       var loanContract = loanContractInstance;
       loanContract.options.address = this.state.loansOfBorrower;
 
+      this.setState({
+        loanContract: loanContract
+      })
+
       // Set state of details of active contract
       this.setState({
-        loanAmount: await loanContract.methods.loanAmount().call({ from: userAddress }),
-        creditTokensRequired: await loanContract.methods.creditTokensRequired().call({ from: userAddress }),
+        loanAmount: await web3.utils.fromWei(await loanContract.methods.loanAmount().call({ from: userAddress }), "ether"),
+        creditTokensRequired: (await loanContract.methods.creditTokensRequired().call({ from: userAddress }))/1000,
         interestRate: await loanContract.methods.interestRate().call({ from: userAddress }),
         creationTime: await loanContract.methods.creationTime().call({ from: userAddress }),
         loanTerm: await loanContract.methods.loanTerm().call({ from: userAddress }),
-        remainingBalance: await loanContract.methods.howMuchToPayOff().call({ from: userAddress }),
-        interestOfPayment: await loanContract.methods.calculateInteresestsofPayment().call({ from: userAddress })
+        remainingBalance: await web3.utils.fromWei(await loanContract.methods.howMuchToPayOff().call({ from: userAddress }), "ether"),
+        interestOfPayment: await loanContract.methods.calculateInteresestsofPayment().call({ from: userAddress }),
+        lendingPoolBalance: await web3.utils.fromWei(await lendingPoolContract.methods.getBalance().call({ from: userAddress }), "ether")
       })
 
 
@@ -144,7 +151,7 @@ class App extends Component {
 
   // Function to call createLoan() from LendingPool.sol
   handleCreateLoan = async () => {
-    let collateralRequired = 0;
+    let collateralRequired = 100000;
     let borrower = this.state.accounts[0];
     let creditTokensRequired = document.getElementById("creditTokenStakingBar").value;
     let loanAmount = document.getElementById("loanAmountBar").value;
@@ -159,6 +166,10 @@ class App extends Component {
       loanLength,
       interestRate
     ).send({ from: this.state.accounts[0] })
+  }
+
+  handleAcceptLoan = async () => {
+    await this.state.loanContract.methods.receive().send({ from: this.state.accounts[0] });
   }
 
   /*
@@ -210,6 +221,8 @@ class App extends Component {
                 <input type="text" id="loanNicknameBar" ></input>
               </div>
 
+              <td><button id="selfclick" onClick={this.handleAcceptLoan}>Start Loan</button></td>
+
   
   */
 
@@ -222,37 +235,40 @@ class App extends Component {
       <div className="App">
         <div class="body">
           <div class="row">
-            <div class="column75">
-              <h1>Welcome to Saké 🍶 Your DeFi Credit Score & Lending Platform </h1>
-              <p align="left"><strong>User: </strong><div id="userAddress" align="left"></div></p>
+            <div class="column65">
+              <h1 align="left">Welcome to Saké 🍶 Your DeFi Credit Score & Lending Platform </h1>
+              <p align="left"><div><text align="center">Lending Pool Address: <strong>{lendingPoolAddress}</strong><div id="loanPercent"></div></text></div></p>
+              <p align="left"><div> <text align="rightr">Lending Pool Balance: <strong>{this.state.lendingPoolBalance} ETH</strong><div id="loanPercent"></div></text> </div></p>
             </div>
+            <p>
+            </p>
             <div class="column2">
-              <p>CreditToken Balance: <strong> {this.state.creditTokenBalance} </strong></p>
-              <p>Ethereum Balance: <strong>{this.state.ethBalance} ETH</strong></p>
-              </div>
+              <p>User: <strong><div id="userAddress"></div></strong></p>
+              <p>User Balance: <strong>{this.state.ethBalance} ETH</strong></p>
+              <p>User CreditToken Balance: <strong> {this.state.creditTokenBalance} </strong></p>
+            </div>
           </div>
           <br></br>
           <div class="row">
-              <h2 align="left"><u>Current Active Loans</u></h2>
+              <h2 align="left"><u>Currently Active Loans</u></h2>
               <table id="loans">
               <tr>
                 <th>Loan Address</th>
-                <th>Amount Loaned</th>
-                <th>Credit Tokens Staked</th>
-                <th>Interest Rate (e.g. 10 = 0.10%)</th>
+                <th>Loan Amount (ETH)</th>
+                <th>Staked Credit Tokens</th>
+                <th>Interest Rate</th>
                 <th>Block No. at Creation</th>
-                <th>Loan Length in Days</th>
-                <th>Remaining Balance</th>
+                <th>Loan Length (Days)</th>
+                <th>Loan Remaining Balance (ETH)</th>
               </tr>
               <tr>
                 <td>{this.state.loansOfBorrower}</td>
                 <td>{this.state.loanAmount}</td>
                 <td>{this.state.creditTokensRequired}</td>
-                <td>{this.state.interestRate}</td>
+                <td>{(this.state.interestRate) / 100}%</td>
                 <td>{this.state.creationTime}</td>
                 <td>{this.state.loanTerm}</td>
                 <td>{this.state.remainingBalance}</td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
               <tr>
                 <td> </td>
@@ -263,7 +279,6 @@ class App extends Component {
                 <td> </td>
                 <td> </td>
                 <td> </td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
               <tr>
                 <td> </td>
@@ -274,7 +289,6 @@ class App extends Component {
                 <td> </td>
                 <td> </td>
                 <td> </td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
               <tr>
                 <td> </td>
@@ -285,7 +299,6 @@ class App extends Component {
                 <td> </td>
                 <td> </td>
                 <td> </td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
               <tr>
                 <td> </td>
@@ -296,7 +309,6 @@ class App extends Component {
                 <td> </td>
                 <td> </td>
                 <td> </td>
-                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
               </table>
           </div>
@@ -309,7 +321,7 @@ class App extends Component {
                 <input type="text" id="creditTokenStakingBar" ></input>
               </div>
               <div class="column15">
-                Loan Amount
+                Loan Amount (Wei)
                 <br></br>
                 <input type="text" id="loanAmountBar" ></input>
               </div>
@@ -331,13 +343,10 @@ class App extends Component {
               </div>
               <div class="row">
                 <div class="column20">
-                  <text align="center">Calculated Interest Rate: <strong>10%</strong><div id="loanPercent"><strong></strong></div></text>
+                  <text align="center">Calculated Interest Rate: <strong>10%</strong><div id="loanPercent"></div></text>
                 </div>
                 <div class="column20">
-                  <text align="center">Collateral Required: <strong>0 ETH</strong><div id="loanPercent"><strong></strong></div></text>
-                </div>
-                <div class="column25">
-                  <text align="center">Lending Pool Address: <strong>{lendingPoolAddress}</strong><div id="loanPercent"><strong></strong></div></text>
+                  <text align="center">Collateral Required: <strong>0 ETH</strong><div id="loanPercent"></div></text>
                 </div>
                 <div class="column10">
               </div>
