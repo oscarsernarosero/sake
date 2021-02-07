@@ -7,8 +7,7 @@ import getWeb3 from "./getWeb3";
 import "./App.css";
 
 const creditTokenAddress = "0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A";
-const lendingPoolAddress = "0x80CE1549e027eB853242B344b91C78a683B35088";
-const loanContractAddress = "0xD0D55fcF0858706a61A20B434e44ca59de34B6B5";
+const lendingPoolAddress = "0x4910b3055192B694A1904a36AbDFa981fa750cd3";
 
 class App extends Component {
   state = {
@@ -23,7 +22,8 @@ class App extends Component {
     creditTokensRequired: null,
     interestRate: null,
     creationTime: null,
-    loanTerm: null
+    loanTerm: null,
+    remainingBalance: null
   };
 
   componentDidMount = async () => {
@@ -79,7 +79,7 @@ class App extends Component {
       this.setState({
         creditTokenBalance: creditTokenBalance,
         ethBalance: balanceOfUserInEth,
-        loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 0).call({ from: userAddress })
+        loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 2).call({ from: userAddress })
      })
 
      // Create contract instance
@@ -89,7 +89,7 @@ class App extends Component {
       );
 
       var loanContract = loanContractInstance;
-      loanContract.options.address = await lendingPoolContract.methods.loansOfBorrower(userAddress, 0).call({ from: userAddress });
+      loanContract.options.address = this.state.loansOfBorrower;
 
       // Set state of details of active contract
       this.setState({
@@ -97,7 +97,8 @@ class App extends Component {
         creditTokensRequired: await loanContract.methods.creditTokensRequired().call({ from: userAddress }),
         interestRate: await loanContract.methods.interestRate().call({ from: userAddress }),
         creationTime: await loanContract.methods.creationTime().call({ from: userAddress }),
-        loanTerm: await loanContract.methods.loanTerm().call({ from: userAddress })
+        loanTerm: await loanContract.methods.loanTerm().call({ from: userAddress }),
+        remainingBalance: await loanContract.methods.howMuchToPayOff().call({ from: userAddress })
       })
 
 
@@ -145,7 +146,7 @@ class App extends Component {
     let borrower = this.state.accounts[0];
     let creditTokensRequired = document.getElementById("creditTokenStakingBar").value;
     let loanAmount = document.getElementById("loanAmountBar").value;
-    let loanLength = document.getElementById("loanLengthBar").value;
+    let loanLength = document.getElementById("loanLengthDropdown").value;
     let interestRate = document.getElementById("loanInterestBar").value;
 
     await this.state.lendingPoolContract.methods.createLoan(
@@ -157,6 +158,18 @@ class App extends Component {
       interestRate
     ).send({ from: this.state.accounts[0] })
   }
+
+  /*
+
+  <div class="column15">
+                Loan Length
+                <br></br>
+                <input type="text" id="loanLengthBar" ></input>
+              </div>
+  
+
+  
+  */
 
   render() {
     
@@ -187,7 +200,7 @@ class App extends Component {
                 <th>Credit Tokens Staked</th>
                 <th>Interest Rate</th>
                 <th>Block No. at Creation</th>
-                <th>Loan Length in Blocks</th>
+                <th>Loan Length in Days</th>
                 <th>Remaining Balance</th>
               </tr>
               <tr>
@@ -198,6 +211,50 @@ class App extends Component {
                 <td>{this.state.interestRate}</td>
                 <td>{this.state.creationTime}</td>
                 <td>{this.state.loanTerm}</td>
+                <td>{this.state.remainingBalance}</td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              <tr>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              <tr>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              <tr>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
+              </tr>
+              <tr>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
+                <td> </td>
                 <td> </td>
                 <td><button id="selfclick" onClick={this.checkScore}>Pay Now </button></td>
               </tr>
@@ -212,18 +269,7 @@ class App extends Component {
                 <input type="text" id="loanNicknameBar" ></input>
               </div>
               <div class="column15">
-              Asset to Receive
-                <br></br>
-                <div>
-                  <select>
-                    <option value="ETH">Ethereum (ETH)</option>
-                    <option value="BTC">Bitcoin (BTC)</option>
-                    <option value="AAVE">AAVE (AAVE)</option>
-                  </select>
-                </div>
-              </div>
-              <div class="column15">
-                Collateral Requied
+                Collateral Required
                 <br></br>
                 <input type="text" id="collateralAmountBar" ></input>
               </div>
@@ -240,7 +286,13 @@ class App extends Component {
               <div class="column15">
                 Loan Length
                 <br></br>
-                <input type="text" id="loanLengthBar" ></input>
+                <div>
+                  <select id="loanLengthDropdown">
+                    <option value="1">One Day</option>
+                    <option value="2">Two Days</option>
+                    <option value="3">Three Days</option>
+                  </select>
+                </div>
               </div>
               <div class="column15">
                 Loan Interest Rate
@@ -266,9 +318,6 @@ class App extends Component {
                   <text align="center">Contract Deposit Address: <div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column10">
-              <p>
-                <button align="right" class="acceptbtn" id="selfclick" onClick={this.checkScore2}>Accept Loan</button>
-              </p>
               </div>
               </div>
           </div>
