@@ -25,7 +25,7 @@ As a first step towards creating such a online credit system, we have created th
 - Loan.sol
     - individual loan contract
 
-- Front End Gif here
+![](./images/truffle_createLoan_demo.gif)
 
 # Future Steps 
 
