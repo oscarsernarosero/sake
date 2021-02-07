@@ -2,3 +2,4 @@
 .jpynb_checkpoints*
 Scheduler_experiment/node_modules
 .env
+node_modules

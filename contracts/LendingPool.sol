@@ -39,6 +39,7 @@ contract LendingPool is Owned {
     event Log(string msg);
     event totalInterestWorthyBalanceEvent(address lender,uint balance, bool multipleBalances);
     event genericUint(string name, uint value);
+    event fakeLog(string msg);
     
     constructor(uint _maxSize){
         
@@ -67,7 +68,7 @@ contract LendingPool is Owned {
         paidByLoan[msg.sender]+=msg.value;
         periodFees += fees;
         periodInterest += interest;
-        
+        emit fakeLog("fake log!");
     }
     
     function liquidateLoan(address loanAddr) public {
