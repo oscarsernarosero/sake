@@ -23,7 +23,8 @@ class App extends Component {
     interestRate: null,
     creationTime: null,
     loanTerm: null,
-    remainingBalance: null
+    remainingBalance: null,
+    interestOfPayment: null
   };
 
   componentDidMount = async () => {
@@ -98,7 +99,8 @@ class App extends Component {
         interestRate: await loanContract.methods.interestRate().call({ from: userAddress }),
         creationTime: await loanContract.methods.creationTime().call({ from: userAddress }),
         loanTerm: await loanContract.methods.loanTerm().call({ from: userAddress }),
-        remainingBalance: await loanContract.methods.howMuchToPayOff().call({ from: userAddress })
+        remainingBalance: await loanContract.methods.howMuchToPayOff().call({ from: userAddress }),
+        interestOfPayment: await loanContract.methods.calculateInteresestsofPayment().call({ from: userAddress })
       })
 
 
@@ -142,12 +144,12 @@ class App extends Component {
 
   // Function to call createLoan() from LendingPool.sol
   handleCreateLoan = async () => {
-    let collateralRequired = document.getElementById("collateralAmountBar").value;
+    let collateralRequired = 0;
     let borrower = this.state.accounts[0];
     let creditTokensRequired = document.getElementById("creditTokenStakingBar").value;
     let loanAmount = document.getElementById("loanAmountBar").value;
     let loanLength = document.getElementById("loanLengthDropdown").value;
-    let interestRate = document.getElementById("loanInterestBar").value;
+    let interestRate = 1000;
 
     await this.state.lendingPoolContract.methods.createLoan(
       collateralRequired,
@@ -161,12 +163,52 @@ class App extends Component {
 
   /*
 
+  let collateralRequired = document.getElementById("collateralAmountBar").value;
+
+  let interestRate = document.getElementById("loanInterestBar").value;
+
+
+  <div class="column15">
+                Collateral Required
+                <br></br>
+                <input type="text" id="collateralAmountBar" ></input>
+              </div>
+
+
   <div class="column15">
                 Loan Length
                 <br></br>
                 <input type="text" id="loanLengthBar" ></input>
               </div>
   
+
+              <div class="column20">
+                  <text align="center">Your Calculated Interest Rate: <strong>{this.state.interestOfPayment}</strong><div id="loanPercent"><strong></strong></div></text>
+                </div>
+
+
+                <div class="column15">
+                Loan Interest Rate
+                <br></br>
+                <input type="text" id="loanInterestBar" ></input>
+              </div>
+
+
+              <div class="column20">
+                  <text align="center">Total Cost of Loan: <div id="loanPercent"><strong></strong></div></text>
+                </div>
+
+
+                // Nickname details of loan
+                <th>Nickname</th>
+
+                <td> </td>
+
+                <div class="column15">
+                Loan Nickname
+                <br></br>
+                <input type="text" id="loanNicknameBar" ></input>
+              </div>
 
   
   */
@@ -194,17 +236,15 @@ class App extends Component {
               <h2 align="left"><u>Current Active Loans</u></h2>
               <table id="loans">
               <tr>
-                <th>Nickname</th>
                 <th>Loan Address</th>
                 <th>Amount Loaned</th>
                 <th>Credit Tokens Staked</th>
-                <th>Interest Rate</th>
+                <th>Interest Rate (e.g. 10 = 0.10%)</th>
                 <th>Block No. at Creation</th>
                 <th>Loan Length in Days</th>
                 <th>Remaining Balance</th>
               </tr>
               <tr>
-                <td> </td>
                 <td>{this.state.loansOfBorrower}</td>
                 <td>{this.state.loanAmount}</td>
                 <td>{this.state.creditTokensRequired}</td>
@@ -263,16 +303,6 @@ class App extends Component {
           <br></br>
           <div class="row">
             <h2 align="left"><u>Start a New Loan</u></h2>
-            <div class="column15">
-                Loan Nickname
-                <br></br>
-                <input type="text" id="loanNicknameBar" ></input>
-              </div>
-              <div class="column15">
-                Collateral Required
-                <br></br>
-                <input type="text" id="collateralAmountBar" ></input>
-              </div>
               <div class="column15">
                 CreditToken Amount to Stake
                 <br></br>
@@ -295,27 +325,19 @@ class App extends Component {
                 </div>
               </div>
               <div class="column15">
-                Loan Interest Rate
-                <br></br>
-                <input type="text" id="loanInterestBar" ></input>
-              </div>
-              <div class="column15">
               <p>
                 <button class="loanbtn" id="selfclick" onClick={this.handleCreateLoan}>Create Loan</button>
               </p>
               </div>
               <div class="row">
                 <div class="column20">
-                  <text align="center">Your Calculated Interest Rate: <div id="loanPercent"><strong></strong></div></text>
+                  <text align="center">Calculated Interest Rate: <strong>10%</strong><div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column20">
-                  <text align="center">Your Collateral Required: <div id="loanPercent"><strong></strong></div></text>
-                </div>
-                <div class="column20">
-                  <text align="center">Total Cost of Loan: <div id="loanPercent"><strong></strong></div></text>
+                  <text align="center">Collateral Required: <strong>0 ETH</strong><div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column25">
-                  <text align="center">Contract Deposit Address: <div id="loanPercent"><strong></strong></div></text>
+                  <text align="center">Lending Pool Address: <strong>{lendingPoolAddress}</strong><div id="loanPercent"><strong></strong></div></text>
                 </div>
                 <div class="column10">
               </div>
