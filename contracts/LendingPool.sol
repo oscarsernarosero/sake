@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./Loan.sol";
+import "Loan.sol";
 
 //safemath?
 
@@ -39,7 +39,6 @@ contract LendingPool is Owned {
     event Log(string msg);
     event totalInterestWorthyBalanceEvent(address lender,uint balance, bool multipleBalances);
     event genericUint(string name, uint value);
-    event fakeLog(string msg);
     
     constructor(uint _maxSize){
         
@@ -68,7 +67,7 @@ contract LendingPool is Owned {
         paidByLoan[msg.sender]+=msg.value;
         periodFees += fees;
         periodInterest += interest;
-        emit fakeLog("fake log!");
+        
     }
     
     function liquidateLoan(address loanAddr) public {
@@ -142,19 +141,15 @@ contract LendingPool is Owned {
         return lenders;
     }
     
-    function createLoan(
-        uint _collateralRequired,
-        address payable _borrower,
-        uint _creditTokensRequired,
-        uint _loanAmount,
-        uint _loanTerm, // in days
-        uint _interestRate
-    ) 
-        public
-    {                   
+    function createLoan( uint _collateralRequired,address payable _borrower,
+                        uint _creditTokensRequired, uint _loanAmount,uint _loanTerm, // in days
+                        uint _interestRate  ) public {
+                            
+                            
         //uint priorBalance = address(this).balance;            
         //For documentation: https://github.com/ethereum/solidity/blob/develop/Changelog.md#062-2020-01-27
-         Loan newLoan = new Loan {value: _loanAmount} (
+        require(address(this).balance>=_loanAmount,"Not enough Ether in the pool for this loan.");
+         Loan newLoan = new Loan{value: _loanAmount}(
                                  _collateralRequired,
                                  _borrower,
                                  _creditTokensRequired,
