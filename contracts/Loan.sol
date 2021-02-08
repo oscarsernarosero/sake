@@ -16,7 +16,7 @@ contract CreditToken {
 }
 
 contract _LendingPool{
-    function receiveFromLoan() external payable{}
+    function receiveFromLoan(uint, uint) external payable{}
 }
 
 contract Loan{
@@ -33,7 +33,7 @@ contract Loan{
     int public principal;
     uint public paidBack;
     uint immutable public interestRate;
-    uint public interestsPaid;
+    uint public interestPaid;
     uint public spamFee = 150;
     uint public paidFees;
     uint public creditChange;
@@ -60,9 +60,8 @@ contract Loan{
         uint _loanAmount, //The amount of Ether that is going to be lended to the borrower (weis)
         uint _loanTerm, // in days
         uint _interestRate // in percentual points muliplied by 100 (i.e. 1.5% = 150)
-    )
-        payable
-    { // The constructor is payable because it will receive the Ether to be lended at creation time
+        )
+        payable{ // The constructor is payable because it will receive the Ether to be lended at creation time
         
         require(msg.value == _loanAmount); 
         
@@ -78,6 +77,7 @@ contract Loan{
         
         state = States.WaitingOnCollateral;
     }
+    
     
     modifier onlyOnState(States _state) {
         require(state == _state,"Function cannot be called at this time.");
@@ -105,6 +105,7 @@ contract Loan{
         
         uint thisSpamFee = (loanAmount * spamFee)/10000;
         require(msg.value >= (collateralRequired + thisSpamFee) * 1 wei, "Your collateral is not enough for this loan.");
+        require(msg.value < (collateralRequired + thisSpamFee + loanAmount) * 1 wei, "You can't pay off loan right away.");
         
         paidFees += thisSpamFee;
         uint collateralSent = msg.value - thisSpamFee;
@@ -128,11 +129,11 @@ contract Loan{
     }
     
     function receivePayment() internal{
-        // the payment has to be able to cover at least the interests borrowed
-            uint interests = calculateInteresestsofPayment();
-            require( msg.value >= interests, "Your payment has to cover at least the interests owed today." );
-            interestsPaid += interests;
-            uint toPrincipal = msg.value - interests;
+        // the payment has to be able to cover at least the interest borrowed
+            uint interest = calculateInteresestsofPayment();
+            require( msg.value >= interest, "Your payment has to cover at least the interest owed today." );
+            interestPaid += interest;
+            uint toPrincipal = msg.value - interest;
             principal -= int(toPrincipal);
             paidBack += toPrincipal;
             if(principal <= 0 ){
@@ -179,7 +180,7 @@ contract Loan{
     function returnCollateral() public returns(bool success){ //SET TO PRIVATE!!!
         //borrower.transfer(collateralRequired);
         //We return to the borrower all the money left in the loan since we have already
-        //paid the pool (interests, fees and loanAmount)
+        //paid the pool (interest, fees and loanAmount)
         borrower.transfer(address(this).balance);
         return true;
     }
@@ -199,13 +200,13 @@ contract Loan{
     function calculateCreditChange() internal{
         //percentage change expressed in hundreth or percentual points. i.e.: 1 = 0.01% ; 100 = 1%; 1000 = 10%
         if ( state != States.Late){
-            creditChange = 10000 + (interestsPaid*2*10000)/(loanAmount * 3);
+            creditChange = 10000 + (interestPaid*2*10000)/(loanAmount * 3);
         }
         else {
            if (block.timestamp < (loanTerm * 1 minutes * 12)/10 + creationTime ){ //CHANGE TO days IN PRODUCTION
                uint x = block.timestamp - loanTerm * 1 minutes - creationTime;//CHANGE TO days IN PRODUCTION
-               uint m =  ( 10000 + (interestsPaid*10000)/(loanAmount * 3) ) / ((loanTerm * 1 minutes * 2)/10 );//CHANGE TO days IN PRODUCTION
-               uint b = (interestsPaid*2*10000)/(loanAmount * 3);
+               uint m =  ( 10000 + (interestPaid*10000)/(loanAmount * 3) ) / ((loanTerm * 1 minutes * 2)/10 );//CHANGE TO days IN PRODUCTION
+               uint b = (interestPaid*2*10000)/(loanAmount * 3);
                creditChange =  b - m*x;
            }else
             {creditChange = 0;}
@@ -213,8 +214,8 @@ contract Loan{
     }
     
     function payPool() internal returns(bool success){
-        uint payment = paidFees + interestsPaid + paidBack;
-        lendingPool.receiveFromLoan{value: payment}();
+        uint payment = paidFees + interestPaid + paidBack;
+        lendingPool.receiveFromLoan{value: payment}(paidFees, interestPaid);
         return true;
     }
     
@@ -226,7 +227,7 @@ contract Loan{
     function calculateInteresestsofPayment() public view returns(uint){
         //###### REAL CODE (IN DAYS) ######
         // uint nDays = (block.timestamp  - lastPayment)/(1 days);
-        // uint interestsPct = ( 10000 + interestRate )**nDays - 10000;
+        // uint interestPct = ( 10000 + interestRate )**nDays - 10000;
         
         //###### TEST CODE (IN MINUTES) #######
         uint nDays = (block.timestamp  - lastPayment)/60;
@@ -234,9 +235,9 @@ contract Loan{
     }
     
     function howMuchToPayOff() public view returns(uint){
-        uint interests = calculateInteresestsofPayment();
+        uint interest = calculateInteresestsofPayment();
         if (principal >= 0){
-            return uint(principal) + interests;
+            return uint(principal) + interest;
         }else{
             return 0;
         }
