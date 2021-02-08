@@ -60,8 +60,9 @@ contract Loan{
         uint _loanAmount, //The amount of Ether that is going to be lended to the borrower (weis)
         uint _loanTerm, // in days
         uint _interestRate // in percentual points muliplied by 100 (i.e. 1.5% = 150)
-        )
-        payable{ // The constructor is payable because it will receive the Ether to be lended at creation time
+    )
+        payable
+    { // The constructor is payable because it will receive the Ether to be lended at creation time
         
         require(msg.value == _loanAmount); 
         

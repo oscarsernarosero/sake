@@ -1717,15 +1717,27 @@
     "version": "0.8.1+commit.df193b15.Emscripten.clang"
   },
   "networks": {
+    "3": {
+      "events": {},
+      "links": {},
+      "address": "0xDB4fe8e69c87F63A80FC37c059b710a28EBEc0Cb",
+      "transactionHash": "0x7b13616e9aadcb162188e2baaaf49bafdbe8b578904d0e39aeae6eeea734e7c9"
+    },
     "42": {
       "events": {},
       "links": {},
       "address": "0x5606d72B6f3Cb4DAB4eeeEdb90Ad81fC49C30387",
       "transactionHash": "0x8aaf6ff530bba823c14e75ad968848bef408506b622d974f6d9c21c4af995e44"
+    },
+    "5777": {
+      "events": {},
+      "links": {},
+      "address": "0x2968fa27485Da53B96e6FB7ee0955AA8f7ea7c7E",
+      "transactionHash": "0x42b47a4d8088eff4c1f5c03f8b8863d483124f7cf789ecf97e20e3dc085277ff"
     }
   },
   "schemaVersion": "3.3.3",
-  "updatedAt": "2021-02-04T04:15:46.060Z",
+  "updatedAt": "2021-02-04T21:08:36.721Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},
