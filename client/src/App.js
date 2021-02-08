@@ -7,7 +7,7 @@ import getWeb3 from "./getWeb3";
 import "./App.css";
 
 const creditTokenAddress = "0x80cDF946c1c86B7eee50743E2bc9a6d7d9ed597A";
-const lendingPoolAddress = "0x4910b3055192B694A1904a36AbDFa981fa750cd3";
+const lendingPoolAddress = "0x3a7039693a8097215c7f91be86eB751211cEF664";
 
 class App extends Component {
   state = {
@@ -16,15 +16,15 @@ class App extends Component {
     accounts: null,
     contract: null,
     lendingPoolContract: null,
-    loanContract: null,
+    loanContractOne: null,
     ethBalance: 0,
-    loansOfBorrower: null,
-    loanAmount: null,
-    creditTokensRequired: null,
-    interestRate: null,
-    creationTime: null,
-    loanTerm: null,
-    remainingBalance: null,
+    loansOfBorrowerOne: null,
+    loanAmountOne: null,
+    creditTokensRequiredOne: null,
+    interestRateOne: null,
+    creationTimeOne: null,
+    loanTermOne: null,
+    remainingBalanceOne: null,
     interestOfPayment: null,
     lendingPoolBalance: null
   };
@@ -82,7 +82,8 @@ class App extends Component {
       this.setState({
         creditTokenBalance: creditTokenBalance,
         ethBalance: balanceOfUserInEth,
-        loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 6).call({ from: userAddress })
+        loansOfBorrower: await lendingPoolContract.methods.loansOfBorrower(userAddress, 0).call({ from: userAddress }),
+        lendingPoolBalance: await web3.utils.fromWei(await lendingPoolContract.methods.getBalance().call({ from: userAddress }), "ether")
      })
 
      // Create contract instance
@@ -95,8 +96,9 @@ class App extends Component {
       loanContract.options.address = this.state.loansOfBorrower;
 
       this.setState({
-        loanContract: loanContract
+        loanContract: loanContract,
       })
+      
 
       // Set state of details of active contract
       this.setState({
@@ -106,8 +108,7 @@ class App extends Component {
         creationTime: await loanContract.methods.creationTime().call({ from: userAddress }),
         loanTerm: await loanContract.methods.loanTerm().call({ from: userAddress }),
         remainingBalance: await web3.utils.fromWei(await loanContract.methods.howMuchToPayOff().call({ from: userAddress }), "ether"),
-        interestOfPayment: await loanContract.methods.calculateInteresestsofPayment().call({ from: userAddress }),
-        lendingPoolBalance: await web3.utils.fromWei(await lendingPoolContract.methods.getBalance().call({ from: userAddress }), "ether")
+        interestOfPayment: await loanContract.methods.calculateInteresestsofPayment().call({ from: userAddress })
       })
 
 
@@ -118,35 +119,6 @@ class App extends Component {
       );
       console.error(error);
     }
-  };
-  
-  checkScore = async () => {
-    const { accounts, contract } = this.state;
-    contract.options.address=creditTokenAddress
-    var response = ""
-    await contract.methods.balanceOf(accounts[0]).call({ from: accounts[0] })
-    .then(function(result){
-      response = result / 1000
-    });
-    // Get the value from the contract to prove it worked.
-    //const response = await contract.methods.function().call();
-
-    // Update state with the result.
-    this.setState({ creditTokenBalance: response });
-  };
-
-  checkScore2 = async () => {
-    const { accounts, contract } = this.state;
-    contract.options.address=creditTokenAddress;
-    var addressBarEntry = document.getElementById("addressBar").value;
-    console.log(addressBarEntry);
-    var response = "";
-    await contract.methods.balanceOf(addressBarEntry).call({ from: accounts[0] })
-    .then(function(result){
-      response = result / 1000
-    });
- 
-    this.setState({ creditTokenBalance: response });
   };
 
   // Function to call createLoan() from LendingPool.sol
@@ -168,11 +140,11 @@ class App extends Component {
     ).send({ from: this.state.accounts[0] })
   }
 
+  /*
+
   handleAcceptLoan = async () => {
     await this.state.loanContract.methods.receive().send({ from: this.state.accounts[0] });
   }
-
-  /*
 
   let collateralRequired = document.getElementById("collateralAmountBar").value;
 
@@ -252,64 +224,24 @@ class App extends Component {
           <div class="row">
               <h2 align="left"><u>Currently Active Loans</u></h2>
               <table id="loans">
-              <tr>
-                <th>Loan Address</th>
-                <th>Loan Amount (ETH)</th>
-                <th>Staked Credit Tokens</th>
-                <th>Interest Rate</th>
-                <th>Block No. at Creation</th>
-                <th>Loan Length (Days)</th>
-                <th>Loan Remaining Balance (ETH)</th>
-              </tr>
-              <tr>
-                <td>{this.state.loansOfBorrower}</td>
-                <td>{this.state.loanAmount}</td>
-                <td>{this.state.creditTokensRequired}</td>
-                <td>{(this.state.interestRate) / 100}%</td>
-                <td>{this.state.creationTime}</td>
-                <td>{this.state.loanTerm}</td>
-                <td>{this.state.remainingBalance}</td>
-              </tr>
-              <tr>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-              </tr>
-              <tr>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-              </tr>
-              <tr>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-              </tr>
-              <tr>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-                <td> </td>
-              </tr>
+                <tr>
+                  <th>Loan Address</th>
+                  <th>Loan Amount (ETH)</th>
+                  <th>Staked Credit Tokens</th>
+                  <th>Interest Rate</th>
+                  <th>Block No. at Creation</th>
+                  <th>Loan Length (Days)</th>
+                  <th>Loan Remaining Balance (ETH)</th>
+                </tr>
+                <tr>
+                  <td>{this.state.loansOfBorrower}</td>
+                  <td>{this.state.loanAmount}</td>
+                  <td>{this.state.creditTokensRequired}</td>
+                  <td>{(this.state.interestRate) / 100}%</td>
+                  <td>{this.state.creationTime}</td>
+                  <td>{this.state.loanTerm}</td>
+                  <td>{this.state.remainingBalance}</td>
+                </tr>
               </table>
           </div>
           <br></br>
