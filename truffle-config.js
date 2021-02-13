@@ -2,6 +2,8 @@ const path = require("path");
 require("dotenv").config({path: "./.env"});
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 const Mnemonic = process.env.MNEMONIC;
+const InfuraKovan = process.env.INFURA_KOVAN;
+const InfuraRopsten = process.env.INFURA_ROPSTEN;
 const Account = 0;
 
 module.exports = {
@@ -14,13 +16,13 @@ module.exports = {
     },
     kovan: {
       provider: function() {
-        return new HDWalletProvider(Mnemonic, "https://kovan.infura.io/v3/815744ee1c864950b1827a90b16006f6", Account)
+        return new HDWalletProvider(Mnemonic, InfuraKovan, Account)
       },
       network_id: 42
     },
     ropsten: {
       provider: function() {
-        return new HDWalletProvider(Mnemonic, "https://ropsten.infura.io/v3/491ffd9a994941089a5e348aba1bb061", Account)
+        return new HDWalletProvider(Mnemonic, InfuraRopsten, Account)
       },
       network_id: 3
     }
